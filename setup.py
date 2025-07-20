@@ -90,7 +90,7 @@ CONFIG_PATH = Path(os.getenv("CONFIG_PATH", f"/etc/{APP_NAME}/config"))
 
 
 def lazy_combine_tristate(
-    fun: Callable[P, Generator[bool | None, None, bool]]
+    fun: Callable[P, Generator[bool | None, None, bool]],
 ) -> Callable[P, bool]:
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> bool:
         gen = fun(*args, **kwargs)
