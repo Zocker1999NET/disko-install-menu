@@ -113,7 +113,7 @@ def main():
     read_config()
     if args.preview_call:
         return MenuSelection.render_preview(*args.preview_call)
-    mode_select()
+    mode_select(args)
 
 
 def read_config():
@@ -132,6 +132,11 @@ def read_config():
 def parse_args():
     parser = argparse.ArgumentParser(prog=APP_NAME)
     parser.add_argument(
+        "--no-global-exit",
+        action="store_true",
+        help="prevent exiting the installer, useful when launched instead of a shell",
+    )
+    parser.add_argument(
         "--preview-call",
         nargs=2,  # sub-args are passed to function render_preview(…)
         help="used internally only (to generate previews for fzf)",
@@ -142,7 +147,16 @@ def parse_args():
 # === setup menus
 
 
-def mode_select():
+def mode_select(args):
+    extra_options = []
+    if not args.no_global_exit:
+        extra_options.append(
+            SimpleMenuOption(
+                "exit",
+                "exit back to shell",
+                "closes the install menu\nand returns you to the shell",
+            )
+        )
     while True:
         menu = MenuSelection.new(
             MenuDesign(border_label="what do you want to do?"),
@@ -171,6 +185,7 @@ def mode_select():
                 "reboot into UEFI firmware settings",
                 "reboot into UEFI settings\n(i.e. BIOS/mainboard/firmware settings)\n\nmay not work on all computers\ndespite being indicated as supported",
             ),
+            *extra_options,
         )
         sel = menu.show_selection()
         if sel is None:
@@ -183,6 +198,8 @@ def mode_select():
         if sel.tag == "shell":
             open_shell()
             continue
+        if sel.tag == "exit":
+            return
         break
     if "poweroff" in sel.tag or "reboot" in sel.tag:
         call("systemctl " + sel.tag)
