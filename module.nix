@@ -8,6 +8,8 @@ let
   cfg = config.programs.disko-install-menu;
 
   inherit (lib) types;
+  inherit (lib.lists) singleton;
+  inherit (lib.meta) getExe;
   inherit (lib.modules) mkIf;
   inherit (lib.options) mkEnableOption mkOption mkPackageOption;
 
@@ -102,8 +104,16 @@ in
       disko-install-menu, allowing users to install a specific flake configuration while selecting the disks for their disko config.
 
       This does add its command to the system path & installs the required configuration file.
-      This does not enable any kind of autostart mechanic
-    '';
+      This does not enable any kind of autostart mechanic,
+      see {config}`programs.disko-install-menu.autoStart` for that
+    ''; # mkEnableOption -> dot at end is added
+
+    autoStart = mkEnableOption ''
+      automatically starting disko-install-menu on tty1.
+
+      WARNING: This means that users gain effectivelly full root access
+      without supplying any credential
+    ''; # mkEnableOption -> dot at end is added
 
     options = mkOption {
       description = ''
@@ -118,6 +128,29 @@ in
   };
 
   config = mkIf (cfg.enable) {
+
+    systemd.services.disko-install-menu = mkIf (cfg.autoStart) {
+      wantedBy = [ "multi-user.target" ];
+      unitConfig = {
+        ConditionPathExists = singleton "/dev/tty1";
+        After = [ "getty.target" ];
+        Conflicts = [ "getty@tty1.service" ];
+      };
+      serviceConfig = {
+        Restart = "always";
+        RestartSec = 0;
+        StandardInput = "tty";
+        StandardOutput = "tty";
+        TTYPath = "/dev/tty1";
+        TTYReset = true;
+        TTYVHangup = true;
+        TTYVDisallocate = true;
+      };
+      script = ''
+        ${pkgs.util-linux}/bin/dmesg -D || true  # disable kernel log on tty
+        ${getExe cfg.package} --no-global-exit
+      '';
+    };
 
     environment.etc."disko-install-menu/config".source =
       cfgFormat.generate "disko-install-menu-config" cfg.options;
