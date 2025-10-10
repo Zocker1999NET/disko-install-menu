@@ -45,7 +45,9 @@
           }
         );
         # raw module exported (assuming package being available in system’s pkgs)
-        disko-install-menu = import ./module.nix;
+        disko-install-menu = {
+          imports = [ ./module.nix ];
+        };
       };
 
       packages = forAllSystems (
