@@ -41,7 +41,7 @@ replaceVarsWith {
       smartmontools # for smartctl
       util-linux # for lsblk, fdisk
     ];
-    hostPreviewNix = ./host-preview.nix;
+    hostPreviewNix = "${./host-preview.nix}";
   };
 
   nativeBuildInputs = [ installShellFiles ];
