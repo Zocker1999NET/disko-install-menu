@@ -224,8 +224,8 @@ def install_select():
             SimpleMenuOption(
                 "default_host",
                 "default target",
-                "install config preselected for unattended installation:",
-                # TODO render config preview
+                # TODO pre-render config preview
+                f"install config preselected for unattended installation:\n{DEFAULT_FLAKE}#{DEFAULT_HOST}\n\n{ConfigSource(DEFAULT_FLAKE, DEFAULT_HOST).host_preview}",
             ),
             SimpleMenuOption(
                 "return",
