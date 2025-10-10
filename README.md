@@ -157,7 +157,7 @@ this could look like this (not tested, please report your success / issues):
               enable = true;
               options = {
                 # set those to your liking
-                defaultFlake = "github:Zocker1999NET/server/deployed";
+                defaultFlake = "github:Zocker1999NET/server";
                 defaultHost = "empty";
               };
             };
