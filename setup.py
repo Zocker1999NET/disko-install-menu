@@ -697,6 +697,8 @@ class ConfigSource:
         args = [
             "nix",
             "eval",
+            "--extra-experimental-features",
+            "nix-command flakes",
             "--raw",
             self.flake_spec if attribute is None else f"{self.flake_spec}.{attribute}",
         ]
