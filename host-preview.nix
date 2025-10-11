@@ -1,4 +1,4 @@
-host:
+{ config, lib, ... }@host:
 let
   # lib
   inherit (builtins)
@@ -7,7 +7,6 @@ let
     filter
     isNull
     ;
-  inherit (host) lib;
   inherit (lib.lists) optionals;
   # custom lib
   prefix = pref: val: if isNull val then null else "${pref}${val}";
@@ -17,7 +16,7 @@ let
   formatList = title: list: if list == [ ] then null else "${title}" + (concatStringsSep ", " list);
   compileList = list: concatStringsSep "\n" (filter (x: !isNull x) list);
   # vars
-  cfg = host.config;
+  cfg = config;
   sys = cfg.system;
   version = sys.nixos.version;
   label = sys.nixos.label;
