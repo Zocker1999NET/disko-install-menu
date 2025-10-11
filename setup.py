@@ -780,6 +780,8 @@ def list_nixos_configs(flake: str) -> Sequence[str]:
         [
             "nix",
             "eval",
+            "--extra-experimental-features",
+            "nix-command flakes",
             "--raw",
             f"{flake}#nixosConfigurations",
             "--apply",
