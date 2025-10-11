@@ -10,6 +10,9 @@
     { nixpkgs, flake-parts, ... }@inputs:
     flake-parts.lib.mkFlake { inherit inputs; } (
       { self, lib, ... }@top:
+      let
+        inherit (lib.lists) singleton;
+      in
       {
         systems = [
           "x86_64-linux"

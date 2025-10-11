@@ -138,9 +138,10 @@ in
       };
       serviceConfig = {
         Restart = "always";
-        RestartSec = 0;
+        RestartSec = "5s";
         StandardInput = "tty";
         StandardOutput = "tty";
+        StartLimitIntervalSec = "0"; # allow unlimited amount of restarts
         TTYPath = "/dev/tty1";
         TTYReset = true;
         TTYVHangup = true;
