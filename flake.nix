@@ -3,7 +3,10 @@
 
   inputs = {
     # for flake structure
-    flake-parts.url = "github:hercules-ci/flake-parts";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs"; # have full nixpkgs.lib
+    };
     # for package
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
