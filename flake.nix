@@ -24,6 +24,10 @@
         inherit (lib.lists) singleton;
       in
       {
+        imports = [
+          ./support/default.nix
+        ];
+
         systems = [
           "x86_64-linux"
         ];
