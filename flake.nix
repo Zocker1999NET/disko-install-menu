@@ -2,7 +2,9 @@
   description = "Interactive Installer Menu for Flake-based NixOS Disko Configurations";
 
   inputs = {
+    # for flake structure
     flake-parts.url = "github:hercules-ci/flake-parts";
+    # for package
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
