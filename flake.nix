@@ -9,6 +9,11 @@
     };
     # for package
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # for testing
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
