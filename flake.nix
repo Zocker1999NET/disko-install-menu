@@ -17,18 +17,21 @@
 
         flake = {
           nixosModules = rec {
-            # with package from flake configured (allowing easier use)
-            default = (
-              { pkgs, ... }:
-              {
-                imports = [ disko-install-menu ];
-                config.programs.disko-install-menu.package = self.packages.${pkgs.system}.disko-install-menu;
-              }
-            );
+            # with package already provided (allowing easier use)
+            default.imports = [
+              disko-install-menu
+              package
+            ];
             # raw module exported (assuming package being available in system’s pkgs)
             disko-install-menu = {
               imports = [ ./module.nix ];
             };
+            # package as overlay & especially built for the given NixOS version
+            package.nixpkgs.overlays = singleton (
+              pkgs: _: {
+                disko-install-menu = pkgs.callPackage ./package.nix { };
+              }
+            );
           };
         };
 
