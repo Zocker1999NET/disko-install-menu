@@ -26,6 +26,7 @@
       {
         imports = [
           ./support/default.nix
+          ./tests/default.nix
         ];
 
         systems = [

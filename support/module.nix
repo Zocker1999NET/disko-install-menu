@@ -14,6 +14,10 @@ let
 in
 {
 
+  imports = [
+    ./bootloader-dependencies.nix
+  ];
+
   options.system = {
 
     description = mkOption {
