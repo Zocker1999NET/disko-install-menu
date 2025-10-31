@@ -115,6 +115,17 @@ in
       without supplying any credential
     ''; # mkEnableOption -> dot at end is added
 
+    debugMode = mkEnableOption ''
+      debug mode for disko-install-menu.
+
+      It will make it easier to view error messages
+      logged by disko-install-menu
+      by launching it inside a tmux session.
+
+      This option is applicable when combined with
+      {option}`programs.disko-install-menu.autoStart`
+    ''; # mkEnableOption -> dot at end is added
+
     options = mkOption {
       description = ''
         Passthrough options for disko-install-menu.
@@ -149,7 +160,12 @@ in
       };
       script = ''
         ${pkgs.util-linux}/bin/dmesg -D || true  # disable kernel log on tty
-        ${getExe cfg.package} --no-global-exit
+        ${
+          if cfg.debugMode then
+            "${getExe pkgs.tmux} new-session ${getExe cfg.package}"
+          else
+            "${getExe cfg.package} --no-global-exit"
+        }
       '';
     };
 
