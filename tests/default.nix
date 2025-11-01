@@ -4,7 +4,10 @@ let
 in
 {
 
-  imports = singleton ./nixosConfig.nix;
+  imports = [
+    ./_configDefaults.nix
+    ./nixosConfig.nix
+  ];
 
   perSystem =
     { pkgs, ... }@systemArg:
