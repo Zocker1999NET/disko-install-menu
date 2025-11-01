@@ -7,6 +7,7 @@
 let
   cfg = config.programs.disko-install-menu;
 
+  inherit (builtins) concatStringsSep;
   inherit (lib) types;
   inherit (lib.lists) singleton;
   inherit (lib.meta) getExe;
@@ -162,7 +163,13 @@ in
         ${pkgs.util-linux}/bin/dmesg -D || true  # disable kernel log on tty
         ${
           if cfg.debugMode then
-            "${getExe pkgs.tmux} new-session ${getExe cfg.package}"
+            "${getExe pkgs.tmux} "
+            + concatStringsSep " \\; " [
+              "start-server"
+              "new-session -d ${getExe cfg.package}"
+              "set-option -s remain-on-exit"
+              "attach-session"
+            ]
           else
             "${getExe cfg.package} --no-global-exit"
         }
