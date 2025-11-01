@@ -47,6 +47,7 @@
             # package as overlay & especially built for the given NixOS version
             package.nixpkgs.overlays = singleton (
               pkgs: _: {
+                inherit (inputs.disko.packages.${pkgs.system}) disko;
                 disko-install-menu = pkgs.callPackage ./package.nix { };
               }
             );
