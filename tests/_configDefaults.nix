@@ -21,10 +21,7 @@ in
           grub.enable = false;
           systemd-boot.enable = true;
         };
-        system = {
-          description = "config intended to be only used by nixosTests testing disko-install-menu";
-          stateVersion = majorMinor config.system.nixos.version;
-        };
+        system.stateVersion = majorMinor config.system.nixos.version;
       };
     };
 }

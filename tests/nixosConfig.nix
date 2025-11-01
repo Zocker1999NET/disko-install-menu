@@ -18,6 +18,10 @@ in
         self.nixosModules.test-configDefaults
         # installer prefix
         self.nixosModules.support
+        {
+          # also heavily speeds up rendering description of configuration
+          system.description = "config intended to be only used by nixosTests testing disko-install-menu";
+        }
       ];
       inherit system;
     };
