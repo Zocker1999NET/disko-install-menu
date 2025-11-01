@@ -535,6 +535,8 @@ class InstallPlan:
 
     def execute_install(self) -> Literal[True] | subprocess.CalledProcessError:
         try:
+            # we pre-build here, despite that disko-install does the same
+            # because our debug/dry-run mode should actually attempt to build it
             call(
                 self.pre_generation_cmd(),
                 safe=True,  # is non-destructive & part of debugging
