@@ -37,27 +37,6 @@ in
         name = "installDefault";
 
         nodes.node.imports = [
-          # debugging fzf
-          (
-            { pkgs, ... }:
-            {
-              environment.systemPackages = [ pkgs.fzf ];
-              nixpkgs.overlays = [
-                (final: prev: {
-                  fzf = prev.fzf.overrideAttrs (old: {
-                    version = "v0.66.0-beta";
-                    src = pkgs.fetchFromGitHub {
-                      owner = "junegunn";
-                      repo = "fzf";
-                      rev = "ab407c4645952d09c4bb9b481b178717f0a0578f";
-                      hash = "sha256-bkBOo/KJ0WQrAWhHFHnvdqGoWvCL0vYj/H6eepraf3w=";
-                    };
-                    vendorHash = "sha256-uFXHoseFOxGIGPiWxWfDl339vUv855VHYgSs9rnDyuI=";
-                  });
-                })
-              ];
-            }
-          )
           # configure installer
           self.nixosModules.default
           {
