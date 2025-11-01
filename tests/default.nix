@@ -6,6 +6,7 @@ in
 
   imports = [
     ./_configDefaults.nix
+    ./descriptionFallback.nix
     ./nixosConfig.nix
   ];
 
