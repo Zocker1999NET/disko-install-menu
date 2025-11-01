@@ -1,4 +1,6 @@
 # used by support modules only to provide generation of a default description
+# WARN: this file is not allowed to reference other files with path expressions
+#       due to its usage by ../setup.py
 { config, lib, ... }@host:
 let
   # lib

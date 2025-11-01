@@ -61,7 +61,7 @@ if APP_NAME.startswith("@"):
 
 HOST_PREVIEW_NIX = "@hostPreviewNix@"
 if HOST_PREVIEW_NIX.startswith("@"):
-    HOST_PREVIEW_NIX = "./host-preview.nix"
+    HOST_PREVIEW_NIX = "./support/host-preview.nix"
 
 
 nix_pkg_path = "@path@"
@@ -685,9 +685,24 @@ class ConfigSource:
 
     @cached_property
     def host_preview(self) -> str:
+        systemDesc = self.get_option_or_none("system.description")
+        if systemDesc is not None:
+            return str(systemDesc)
         with Path(HOST_PREVIEW_NIX).open("r") as fd:
             preview_gen = fd.read()
         return self.eval(apply=preview_gen).rstrip("\r\n")
+
+    def get_option_or_none(self, option: str) -> Any:
+        """
+        - requires the option value to be generally JSON compatible
+        - only ignores when the last attribute ceases to exist
+        """
+        return json.loads(
+            self.eval(
+                "config",
+                apply=f"c: builtins.toJSON (c.{option} or null)",
+            )
+        )
 
     def get_option(self, option: str) -> Any:
         "requires the option value to be generally JSON compatible"
