@@ -69,19 +69,20 @@ if not nix_pkg_path.startswith("@"):
     os.environ["PATH"] = f"{nix_pkg_path}:{os.environ['PATH']}"
 
 
-# TODO convert those to Settings class, which gets passed along
-#   or alt: pack everything into an App class, which contains those settings
+@dataclass
+class Settings:
+    debugMode: bool = True
+    defaultFlake: str = "github:Zocker1999NET/server"
+    defaultHost: str = "empty"
+    diskoInstallFlags: list[str] = field(default_factory=list)
+    writeEfiBootEntries: bool | None = None  # None = depending on selected config
+
+    @cached_property
+    def defaultHostConfig(self) -> ConfigSource:
+        return ConfigSource(self.defaultFlake, self.defaultHost)
 
 
-DEBUG_MODE = True
-
-DEFAULT_FLAKE = "github:Zocker1999NET/server"
-DEFAULT_HOST = "empty"
-
-DISKO_INSTALL_FLAGS = []
-WRITE_EFI_BOOT_ENTRIES: bool | None = True  # None = depending on selected config
-
-
+CONFIG = Settings()
 CONFIG_PATH = Path(os.getenv("CONFIG_PATH", f"/etc/{APP_NAME}/config"))
 
 
@@ -116,16 +117,18 @@ def main():
 
 
 def read_config():
-    global DEBUG_MODE, DEFAULT_FLAKE, DEFAULT_HOST, DISKO_INSTALL_FLAGS, WRITE_EFI_BOOT_ENTRIES
+    global CONFIG
     if not CONFIG_PATH.is_file():
         raise RuntimeError(f"missing configuration file at {str(CONFIG_PATH)!r}")
     with CONFIG_PATH.open("r") as fd:
         data = json.load(fd)
-    DEBUG_MODE = data.get("debugMode", False)
-    DEFAULT_FLAKE = data["defaultFlake"]
-    DEFAULT_HOST = data["defaultHost"]
-    DISKO_INSTALL_FLAGS = data.get("diskoInstallFlags", list())
-    WRITE_EFI_BOOT_ENTRIES = data.get("writeEfiBootEntries", None)
+    CONFIG = Settings(
+        debugMode=data.get("debugMode", False),
+        defaultFlake=data["defaultFlake"],
+        defaultHost=data["defaultHost"],
+        diskoInstallFlags=data.get("diskoInstallFlags", list()),
+        writeEfiBootEntries=data.get("writeEfiBootEntries", None),
+    )
 
 
 def parse_args():
@@ -188,7 +191,7 @@ def mode_select(args):
         )
         sel = menu.show_selection()
         if sel is None:
-            if DEBUG_MODE:
+            if CONFIG.debugMode:
                 return
             continue
         if sel.tag == "install":
@@ -212,8 +215,8 @@ def install_select():
             MenuDesign(border_label="what do you want to do?", header="install …"),
             SimpleMenuOption(
                 "default_flake",
-                f"from flake {DEFAULT_FLAKE}",
-                f"select host configuration from flake:\n{DEFAULT_FLAKE}\n\nprobably requires network connectivity",
+                f"from flake {CONFIG.defaultFlake}",
+                f"select host configuration from flake:\n{CONFIG.defaultFlake}\n\nprobably requires network connectivity",
             ),
             SimpleMenuOption(
                 "flake_input",
@@ -224,7 +227,7 @@ def install_select():
                 "default_host",
                 "default target",
                 # TODO pre-render config preview
-                f"install config preselected for unattended installation:\n{DEFAULT_FLAKE}#{DEFAULT_HOST}\n\n{ConfigSource(DEFAULT_FLAKE, DEFAULT_HOST).host_preview}",
+                f"install config preselected for unattended installation:\n{CONFIG.defaultHostConfig.short_spec}\n\n{CONFIG.defaultHostConfig.host_preview}",
             ),
             SimpleMenuOption(
                 "return",
@@ -241,10 +244,10 @@ def install_select():
                 host_select(user_flake)
             continue
         if sel.tag == "default_flake":
-            host_select(DEFAULT_FLAKE)
+            host_select(CONFIG.defaultFlake)
             continue
         if sel.tag == "default_host":
-            host_menu(ConfigSource(DEFAULT_FLAKE, DEFAULT_HOST))
+            host_menu(CONFIG.defaultHostConfig)
             continue
         break
     raise_invalid_choice(sel)
@@ -255,7 +258,7 @@ def flake_input() -> str | None:
     print("for example:")
     examples = (
         "github:NixOS/nixpkgs  (albeit that contains no configs)",
-        f"{DEFAULT_FLAKE}  (configured default)",
+        f"{CONFIG.defaultFlake}  (configured default)",
     )
     print("\n".join(f"- {line}" for line in examples))
     print("(submit empty input or CTRL+D to return back to menu)")
@@ -568,9 +571,9 @@ class InstallPlan:
 
     def installation_cmd(self) -> Sequence[str]:
         disko_args = ["disko-install", "--flake", self.config.short_spec]
-        if DEBUG_MODE:
+        if CONFIG.debugMode:
             disko_args.append("--dry-run")
-        disko_args.extend(DISKO_INSTALL_FLAGS)
+        disko_args.extend(CONFIG.diskoInstallFlags)
         if self.will_write_efi_boot_entries:
             disko_args.append("--write-efi-boot-entries")
         for name, path in self.disk_map.items():
@@ -586,7 +589,7 @@ class InstallPlan:
     @lazy_combine_tristate
     def will_write_efi_boot_entries(self) -> bool:
         yield self.writeEfiBootEntries
-        yield WRITE_EFI_BOOT_ENTRIES
+        yield CONFIG.writeEfiBootEntries
         return self.__internal_can_touch_efi_variables
 
     @cached_property
@@ -851,7 +854,7 @@ def call(
         cmd = shlex.split(cmd)
     else:
         cmd = list(iter(cmd))
-    if DEBUG_MODE and not safe:
+    if CONFIG.debugMode and not safe:
         print("[DEBUG] + " + shlex.join(cmd))
         print("[DEBUG] (sleep some seconds for you to read this)")
         time.sleep(3)
@@ -996,7 +999,7 @@ class MenuDesign:
 
     def __fzf_args(self) -> Mapping[str, str | None]:
         border_label = self.border_label
-        if DEBUG_MODE:
+        if CONFIG.debugMode:
             border_label = f"[DEBUG] {border_label} [DEBUG]"
         return {
             "--border-label": border_label,
