@@ -8,12 +8,10 @@
 let
   cfg = config.programs.disko-install-menu;
 
-  inherit (builtins) concatStringsSep;
   inherit (lib) types;
   inherit (lib.lists) singleton;
-  inherit (lib.meta) getExe;
   inherit (lib.modules) mkIf;
-  inherit (lib.options) mkEnableOption mkOption mkPackageOption;
+  inherit (lib.options) mkEnableOption mkOption;
 
   cfgFormat = pkgs.formats.json { };
 
