@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import (
+    Iterator,
     Iterable,
     Mapping,
     Sequence,
@@ -343,7 +344,9 @@ def host_menu(config: ConfigSource):
     raise_invalid_choice(sel)
 
 
-def host_install_menus(plan: InstallPlan) -> None:
+def host_install_menus(plan: InstallPlan | None) -> None:
+    if plan is None:
+        return
     plan = ask_for_missing_disks(plan)
     if plan is None:
         return
@@ -434,7 +437,7 @@ def action_on_success(plan: InstallPlan) -> CompletionAction | None:
     raise_invalid_choice(sel)
 
 
-def ask_for_missing_disks(plan: InstallPlan) -> InstallPlan:
+def ask_for_missing_disks(plan: InstallPlan) -> InstallPlan | None:
     for disk_name in plan.config.list_disko_disks():
         if disk_name in plan.disk_map:
             continue
@@ -475,7 +478,7 @@ def select_disk(
         menu = MenuSelection.new(
             MenuDesign(
                 border_label=f"select disk for config: {disk_name}",
-                header=DiskInfo.description_header,
+                header=DiskInfo.get_description_header(),
             ),
             *options,
         )
@@ -504,7 +507,7 @@ def manual_disk_input(plan: InstallPlan, disk_name: DiskName) -> DiskPath | None
         return None
     if user_input == "":
         return None
-    return user_input
+    return DiskPath(user_input)
 
 
 def press_any_key(reason: str = "to continue") -> None:
@@ -526,7 +529,7 @@ class InstallPlan:
     config: ConfigSource
     mode: InstallMode
     # ones which can be changed
-    disk_map: Mapping[DiskName, DiskPath] = field(default_factory=dict)
+    disk_map: dict[DiskName, DiskPath] = field(default_factory=dict)
     writeEfiBootEntries: bool | None = None
 
     def execute_install(self) -> Literal[True] | subprocess.CalledProcessError:
@@ -542,7 +545,7 @@ class InstallPlan:
                 safe=True,  # i.e. already checks for debug mode
             )
         except subprocess.CalledProcessError as e:
-            return False
+            return e
         return True
 
     def pre_generation_cmd(self) -> Sequence[str] | None:
@@ -581,7 +584,7 @@ class InstallPlan:
 
     @property
     @lazy_combine_tristate
-    def will_write_efi_boot_entries(self) -> bool:
+    def will_write_efi_boot_entries(self) -> Generator[bool | None, None, bool]:
         yield self.writeEfiBootEntries
         yield CONFIG.writeEfiBootEntries
         return self.__internal_can_touch_efi_variables
@@ -608,7 +611,8 @@ class CompletionAction(Enum):
                 return ["systemctl", "reboot", "--firmware-setup"]
             case CompletionAction.MENU:
                 return None
-        assert_never()
+            case _ as unreachable:
+                assert_never(unreachable)
 
     @staticmethod
     def from_name(name: str) -> CompletionAction:
@@ -774,9 +778,9 @@ class DiskInfo:
             )
         )
 
-    @property
+    # cannot be @property, as unsupported on classmethod/staticmethod (according to mypy)
     @staticmethod
-    def description_header(self) -> str:
+    def get_description_header() -> str:
         return "name - size - model - serial - wwn"
 
     @property
@@ -864,7 +868,7 @@ P = ParamSpec("P")
 # === menu rendering
 
 
-def raise_invalid_choice(data: MenuOption):
+def raise_invalid_choice(data: MenuOption) -> NoReturn:
     raise Exception(f"invalid option selected: {data!r}")
 
 
@@ -934,13 +938,12 @@ class MenuSelection:
         # TODO adapt preview text to size of preview window (given via environment variables)
         option.output_preview()
 
-    @staticmethod  # required for contextmanager to work
     @contextmanager
-    def __preview_listener(selection: MenuSelection) -> Iterable[str]:
+    def __preview_listener(self) -> Iterator[str]:
         exit_code = random.randbytes(32)
         listener = Listener(family="AF_UNIX")
         thread = Thread(
-            target=selection.__provide_listener,
+            target=self.__provide_listener,
             args=(listener, exit_code),
             daemon=True,
         )
@@ -951,7 +954,7 @@ class MenuSelection:
                     sys.executable,
                     sys.argv[0],
                     "--preview-call",
-                    listener.address,
+                    cast(str, listener.address),  # because family="AF_UNIX"
                 )
             ) + " {}"  # placeholder for fzf, required to be unescaped
         finally:
@@ -964,7 +967,7 @@ class MenuSelection:
             conn.close()
             thread.join()
 
-    def __provide_listener(self, listener: Listener, exit_code: bytes) -> NoReturn:
+    def __provide_listener(self, listener: Listener, exit_code: bytes) -> None:
         while True:
             conn = listener.accept()
             name = conn.recv()
