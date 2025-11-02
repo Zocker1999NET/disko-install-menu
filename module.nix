@@ -78,7 +78,7 @@ let
           This is because the setup is expected to be executed on the actual target machines.
 
           This `null` value allows you e.g.
-          to disable this for configurations intended for systems
+          to disable this in configurations intended for systems
           where writing EFI variables might error out.
 
           Disable this if you want to execute the setup on non-target machines,
