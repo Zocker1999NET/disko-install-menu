@@ -610,7 +610,7 @@ class CompletionAction(Enum):
                 return ["systemctl", "poweroff"]
             case CompletionAction.REBOOT:
                 return ["systemctl", "reboot"]
-            case CompletionAction.SHUTDOWN:
+            case CompletionAction.FIRMWARE:
                 return ["systemctl", "reboot", "--firmware-setup"]
             case CompletionAction.MENU:
                 return None
