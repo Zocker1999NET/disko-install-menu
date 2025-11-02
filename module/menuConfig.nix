@@ -46,7 +46,8 @@ let
           If declared, it only serves as the default for speeding up selection of a configuration.
           Users may still choose to install a different configuration at all.
 
-          This configuration is expected to be exported by the default flake.
+          This configuration is expected to be exported by the default flake as defined in
+          {option}`programs.disko-install-menu.options.defaultFlake`.
 
           In general, for a NixOS configuration to be installable by this setup,
           it must also define a disko configuration
