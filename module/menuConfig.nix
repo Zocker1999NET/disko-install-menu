@@ -36,18 +36,12 @@ let
 
       defaultFlake = mkOption {
         description = ''
-          The flake suggested by default in the menu.
+          The flake where the default host config as specified in
+          {option}`programs.disko-install-menu.options.defaultHost` lives.
 
-          If declared, it only serves as the default for speeding up selection of a configuration.
-          Depending on {option}`programs.disko-install-menu.options.allowFlakeInput`,
-          users may still choose to install from other flakes by inserting these flake references manually on runtime.
-
-          Do not declare a specific configuration here (i.e. do not add `#host` to the end of the reference).
-          To declare a default configuration, use the specific option for that.
-
-          In general, for this menu to recognize a flake’s configurations,
-          it must declare them in its nixosConfigurations output.
-          The same as e.g. nixos-rebuild requires that output to be set.
+          The flake listed this in option is also added to
+          {option}`programs.disko-install-menu.options.listedFlakes`.
+          Read that option’s documentation for further explaination.
         '';
         type = types.str;
         example = "github:Zocker1999NET/server";
@@ -58,7 +52,9 @@ let
           The name of the default host configuration provided in the menu.
 
           If declared, it only serves as the default for speeding up selection of a configuration.
-          Users may still choose to install a different configuration at all.
+          Depending on {option}`programs.disko-install-menu.options.allowFlakeInput`
+          or {option}`programs.disko-install-menu.options.listedFlakes`,
+          users may still choose to install a different configuration at all.
 
           This configuration is expected to be exported by the default flake as defined in
           {option}`programs.disko-install-menu.options.defaultFlake`.
@@ -76,6 +72,25 @@ let
         description = "Command line arguments which are forwarded to disko-install.";
         type = with types; listOf str;
         default = [ ];
+      };
+
+      listedFlakes = mkOption {
+        description = ''
+          The flakes suggested in the menu.
+
+          If declared, this list serves as a shortcut for speeding up selection of a configuration.
+          Depending on {option}`programs.disko-install-menu.options.allowFlakeInput`,
+          users may still choose to install from other flakes by inserting these flake references manually on runtime.
+
+          Do not declare a specific configuration here (i.e. do not add `#host` to the end of the reference).
+          To declare a default configuration, use the specific option for that.
+
+          In general, for this menu to recognize a flake’s configurations,
+          it must declare them in its nixosConfigurations output.
+          The same as e.g. nixos-rebuild requires that output to be set.
+        '';
+        type = with types; listOf str;
+        example = singleton "github:Zocker1999NET/server";
       };
 
       writeEfiBootEntries = mkOption {
@@ -124,6 +139,11 @@ in
     # moved to /etc so config applies when disko-install-menu is just called by itself
     environment.etc."disko-install-menu/config".source =
       cfgFormat.generate "disko-install-menu-config" cfg.options;
+
+    # default options
+    programs.disko-install-menu.options = {
+      listedFlakes = singleton cfg.options.defaultFlake;
+    };
   };
 
 }

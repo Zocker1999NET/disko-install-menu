@@ -71,6 +71,7 @@ class Settings:
     defaultFlake: str = "github:Zocker1999NET/server"
     defaultHost: str = "empty"
     diskoInstallFlags: list[str] = field(default_factory=list)
+    listedFlakes: list[str] = field(default_factory=list)
     writeEfiBootEntries: bool | None = None  # None = depending on selected config
 
     @cached_property
@@ -124,6 +125,7 @@ def read_config():
         defaultFlake=data["defaultFlake"],
         defaultHost=data["defaultHost"],
         diskoInstallFlags=data.get("diskoInstallFlags", list()),
+        listedFlakes=data.get("listedFlakes", list()),
         writeEfiBootEntries=data.get("writeEfiBootEntries", None),
     )
 
@@ -207,14 +209,16 @@ def mode_select(args):
 
 
 def install_select():
-    while True:
-        menu = MenuSelection.new(
-            MenuDesign(border_label="what do you want to do?", header="install …"),
-            SimpleMenuOption(
-                "default_flake",
-                f"from flake {CONFIG.defaultFlake}",
-                f"select host configuration from flake:\n{CONFIG.defaultFlake}\n\nprobably requires network connectivity",
-            ),
+    options = [
+        SimpleMenuOption(
+            "flake:",
+            f"from {flake}",
+            f"select host configuration from flake:\n{flake}\n\nprobably requires network connectivity",
+        )
+        for flake in sorted(CONFIG.listedFlakes)
+    ]
+    options.extend(
+        (
             (
                 SimpleMenuOption(
                     "flake_input",
@@ -236,6 +240,12 @@ def install_select():
                 "go back to previous config",
             ),
         )
+    )
+    while True:
+        menu = MenuSelection.new(
+            MenuDesign(border_label="what do you want to do?", header="install …"),
+            *options,
+        )
         sel = menu.show_selection()
         if sel is None or sel.tag == "return":
             return
@@ -244,8 +254,8 @@ def install_select():
             if user_flake is not None:
                 host_select(user_flake)
             continue
-        if sel.tag == "default_flake":
-            host_select(CONFIG.defaultFlake)
+        if sel.tag.startswith("flake:"):
+            host_select(sel.tag[6:])
             continue
         if sel.tag == "default_host":
             host_menu(CONFIG.defaultHostConfig)
