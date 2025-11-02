@@ -1,3 +1,4 @@
+# type: NixOS module
 {
   config,
   lib,
@@ -14,11 +15,8 @@ let
   inherit (lib.modules) mkIf;
   inherit (lib.options) mkEnableOption mkOption mkPackageOption;
 
-  #new_formats = (import ./env_format.nix) { inherit lib pkgs; };
-  #envFmt = new_formats.env { prefix = "opt_"; };
   cfgFormat = pkgs.formats.json { };
 
-  # submodule type
   menuOptions = types.submodule {
     freeformType = cfgFormat.type;
     options = {
@@ -100,33 +98,6 @@ in
 {
 
   options.programs.disko-install-menu = {
-
-    enable = mkEnableOption ''
-      disko-install-menu, allowing users to install a specific flake configuration while selecting the disks for their disko config.
-
-      This does add its command to the system path & installs the required configuration file.
-      This does not enable any kind of autostart mechanic,
-      see {config}`programs.disko-install-menu.autoStart` for that
-    ''; # mkEnableOption -> dot at end is added
-
-    autoStart = mkEnableOption ''
-      automatically starting disko-install-menu on tty1.
-
-      WARNING: This means that users gain effectivelly full root access
-      without supplying any credential
-    ''; # mkEnableOption -> dot at end is added
-
-    debugMode = mkEnableOption ''
-      debug mode for disko-install-menu.
-
-      It will make it easier to view error messages
-      logged by disko-install-menu
-      by launching it inside a tmux session.
-
-      This option is applicable when combined with
-      {option}`programs.disko-install-menu.autoStart`
-    ''; # mkEnableOption -> dot at end is added
-
     options = mkOption {
       description = ''
         Passthrough options for disko-install-menu.
@@ -134,53 +105,12 @@ in
       type = menuOptions;
       default = { };
     };
-
-    package = mkPackageOption pkgs "disko-install-menu" { };
-
   };
 
-  config = mkIf (cfg.enable) {
-
-    systemd.services.disko-install-menu = mkIf (cfg.autoStart) {
-      wantedBy = [ "multi-user.target" ];
-      unitConfig = {
-        ConditionPathExists = singleton "/dev/tty1";
-        After = [ "getty.target" ];
-        Conflicts = [ "getty@tty1.service" ];
-      };
-      serviceConfig = {
-        Restart = "always";
-        RestartSec = "5s";
-        StandardInput = "tty";
-        StandardOutput = "tty";
-        StartLimitIntervalSec = "0"; # allow unlimited amount of restarts
-        TTYPath = "/dev/tty1";
-        TTYReset = true;
-        TTYVHangup = true;
-        TTYVDisallocate = true;
-      };
-      script = ''
-        ${pkgs.util-linux}/bin/dmesg -D || true  # disable kernel log on tty
-        ${
-          if cfg.debugMode then
-            "${getExe pkgs.tmux} "
-            + concatStringsSep " \\; " [
-              "start-server"
-              "new-session -d ${getExe cfg.package}"
-              "set-option -s remain-on-exit"
-              "attach-session"
-            ]
-          else
-            "${getExe cfg.package} --no-global-exit"
-        }
-      '';
-    };
-
+  config = mkIf cfg.enable {
+    # moved to /etc so config applies when disko-install-menu is just called by itself
     environment.etc."disko-install-menu/config".source =
       cfgFormat.generate "disko-install-menu-config" cfg.options;
-
-    environment.systemPackages = [ cfg.package ];
-
   };
 
 }

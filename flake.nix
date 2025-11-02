@@ -42,7 +42,7 @@
             ];
             # raw module exported (assuming package being available in system’s pkgs)
             disko-install-menu = {
-              imports = [ ./module.nix ];
+              imports = [ ./module ];
             };
             # package as overlay & especially built for the given NixOS version
             package.nixpkgs.overlays = singleton (
