@@ -19,6 +19,19 @@ let
     freeformType = cfgFormat.type;
     options = {
 
+      allowFlakeInput = mkOption {
+        description = ''
+          Whether to allow users to input a custom flake spec.
+
+          When this option is disabled,
+          only configurations provided via explicitly configured flakes or configurations
+          can be installed by users of disko-install-menu.
+        '';
+        type = types.bool;
+        default = true;
+        example = false;
+      };
+
       debugMode = mkEnableOption "debug (i.e. dry-run) mode, where no changes will be applied by the install menu";
 
       defaultFlake = mkOption {
@@ -26,7 +39,8 @@ let
           The flake suggested by default in the menu.
 
           If declared, it only serves as the default for speeding up selection of a configuration.
-          Users may still choose to install from other flakes by inserting these flake references manually on runtime.
+          Depending on {option}`programs.disko-install-menu.options.allowFlakeInput`,
+          users may still choose to install from other flakes by inserting these flake references manually on runtime.
 
           Do not declare a specific configuration here (i.e. do not add `#host` to the end of the reference).
           To declare a default configuration, use the specific option for that.

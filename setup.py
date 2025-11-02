@@ -66,6 +66,7 @@ if not nix_pkg_path.startswith("@"):
 
 @dataclass
 class Settings:
+    allowFlakeInput: bool = True
     debugMode: bool = True
     defaultFlake: str = "github:Zocker1999NET/server"
     defaultHost: str = "empty"
@@ -118,6 +119,7 @@ def read_config():
     with CONFIG_PATH.open("r") as fd:
         data = json.load(fd)
     CONFIG = Settings(
+        allowFlakeInput=data.get("allowFlakeInput", True),
         debugMode=data.get("debugMode", False),
         defaultFlake=data["defaultFlake"],
         defaultHost=data["defaultHost"],
@@ -213,10 +215,14 @@ def install_select():
                 f"from flake {CONFIG.defaultFlake}",
                 f"select host configuration from flake:\n{CONFIG.defaultFlake}\n\nprobably requires network connectivity",
             ),
-            SimpleMenuOption(
-                "flake_input",
-                "from flake URL",
-                "prompt for flake URL\nto select NixOS configuration from\n\nrequires network connectivity",
+            (
+                SimpleMenuOption(
+                    "flake_input",
+                    "from flake URL",
+                    "prompt for flake URL\nto select NixOS configuration from\n\nrequires network connectivity",
+                )
+                if CONFIG.allowFlakeInput
+                else None
             ),
             SimpleMenuOption(
                 "default_host",
@@ -233,7 +239,7 @@ def install_select():
         sel = menu.show_selection()
         if sel is None or sel.tag == "return":
             return
-        if sel.tag == "flake_input":
+        if sel.tag == "flake_input" and CONFIG.allowFlakeInput:
             user_flake = flake_input()
             if user_flake is not None:
                 host_select(user_flake)
@@ -880,10 +886,10 @@ class MenuSelection:
     options: Mapping[str, MenuOption]
 
     @staticmethod
-    def new(design: MenuDesign, *options: MenuOption) -> MenuSelection:
+    def new(design: MenuDesign, *options: MenuOption | None) -> MenuSelection:
         return MenuSelection(
             design,
-            {o.name: o for o in options},
+            {o.name: o for o in options if o is not None},
         )
 
     def show_selection(self) -> MenuOption | None:
