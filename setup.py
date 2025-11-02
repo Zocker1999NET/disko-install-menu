@@ -17,13 +17,9 @@ from enum import (
     Enum,
     auto,
 )
-import errno
-import fcntl
 from functools import (
     cached_property,
-    wraps,
 )
-import hashlib
 import json
 from multiprocessing.connection import (
     Client,
@@ -43,13 +39,11 @@ from typing import (
     Any,
     Callable,
     Generator,
-    IO,
     Literal,
     NewType,
     NoReturn,
     ParamSpec,
     Protocol,
-    Self,
     assert_never,
     cast,
 )
@@ -1030,127 +1024,6 @@ class SimpleMenuOption:
     def output_preview(self) -> NoReturn:
         print(self.description)
         sys.exit(0)
-
-
-@dataclass(
-    frozen=True,
-)
-class PreviewMenuOption:
-    tag: str
-    name: str
-    preview_cmd: str
-
-    def output_preview(self) -> NoReturn:
-        # TODO how to get "global" tmp_dir
-        CachedCall(tmp_dir, self.preview_cmd).retrieve().reproduce()
-
-
-# === cached calling
-
-
-@dataclass(
-    frozen=True,
-)
-class CallReturn:
-    return_code: int
-    stdout: str
-    stderr: str
-
-    @staticmethod
-    def from_call(cmd: Sequence[str]) -> CallReturn:
-        "will forget about timing of stdout & stderr messages"
-        proc = subprocess.run(
-            cmd,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        return CallReturn(
-            return_code=proc.returncode,
-            stdout=proc.stdout,
-            stderr=proc.stderr,
-        )
-
-    def reproduce(self, suppress_stderr: bool = False) -> NoReturn:
-        "will not be able to reproduce timing of stdout & stderr messages"
-        print(self.stdout, end="", file=sys.stdout)
-        if not suppress_stderr or result.return_code != 0:
-            print(self.stderr, end="", file=sys.stderr)
-        sys.exit(self.return_code)
-
-    @staticmethod
-    def from_json_str(json_data: str) -> CallReturn:
-        return CallReturn.from_json_struct(json.loads(json_data))
-
-    def to_json_str(self) -> str:
-        return json.dumps(self.to_json_struct())
-
-    @staticmethod
-    def from_json_io(fp: IO[str]) -> CallReturn:
-        return CallReturn.from_json_struct(json.load(fp))
-
-    def to_json_io(self, fp: IO[str]) -> None:
-        json.dump(self.to_json_struct(), fp)
-
-    @staticmethod
-    def from_json_struct(data: Any) -> CallReturn:
-        return CallReturn(
-            return_code=data["return_code"],
-            stdout=data["stdout"],
-            stderr=data["stderr"],
-        )
-
-    def to_json_struct(self) -> Any:
-        return {
-            "return_code": self.return_code,
-            "stdout": self.stdout,
-            "stderr": self.stderr,
-        }
-
-
-@dataclass(
-    frozen=True,
-)
-class CachedCall:
-    tmp_dir: Path
-    cmd: Sequence[str]
-
-    def retrieve(self) -> CallReturn:
-        if self.tmp_file.exists():
-            return self.__from_cache()
-        return self.__try_populate_cache()
-
-    def __try_populate_cache(self) -> CallReturn:
-        with self.tmp_file.open("w") as fd:
-            try:
-                fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except OSError as e:
-                if e.errno in {errno.EACCES, errno.EAGAIN}:
-                    # assume getting lock failed -> other process will populate cache
-                    return self.__from_cache()
-                raise e
-            # we won populating the cache
-            result = self.__generate()
-            result.to_json_io(fd)
-            return result
-            # should auto-unlock when fd is closed
-
-    def __from_cache(self) -> CallReturn:
-        with self.tmp_file.open("r") as fd:
-            fcntl.lockf(fd, fcntl.LOCK_SH)  # block until LOCK_EX is away
-            return CallReturn.from_json_io(fd)
-            # should auto-unlock when fd is closed
-
-    def __generate(self) -> CallReturn:
-        return CallReturn.from_call(self.cmd)
-
-    @cached_property
-    def tmp_file(self) -> Path:
-        return (
-            self.tmp_dir
-            / hashlib.sha3_256(shlex.join(self.cmd).encode("utf-8")).hexdigest()
-        )
 
 
 if __name__ == "__main__":
