@@ -75,7 +75,7 @@ if not nix_pkg_path.startswith("@"):
 
 DEBUG_MODE = True
 
-DEFAULT_FLAKE = "github:Zocker1999NET/server/deployed"
+DEFAULT_FLAKE = "github:Zocker1999NET/server"
 DEFAULT_HOST = "empty"
 
 DISKO_INSTALL_FLAGS = []

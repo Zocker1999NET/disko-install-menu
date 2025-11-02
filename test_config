@@ -1,5 +1,5 @@
 {
     "debugMode": true,
-    "defaultFlake": "github:Zocker1999NET/server/deployed",
+    "defaultFlake": "github:Zocker1999NET/server",
     "defaultHost": "empty"
 }
