@@ -79,7 +79,6 @@ DEFAULT_FLAKE = "github:Zocker1999NET/server"
 DEFAULT_HOST = "empty"
 
 DISKO_INSTALL_FLAGS = []
-# TODO read from system config (because broken on some machines -> make it more dynamic)
 WRITE_EFI_BOOT_ENTRIES: bool | None = True  # None = depending on selected config
 
 
