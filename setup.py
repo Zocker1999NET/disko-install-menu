@@ -45,6 +45,7 @@ from typing import (
     NoReturn,
     ParamSpec,
     Protocol,
+    TypedDict,
     assert_never,
     cast,
 )
@@ -65,18 +66,68 @@ if not nix_pkg_path.startswith("@"):
 
 
 @dataclass
+class ListedFlake:
+    reference: str
+    title: str = ""
+    offlineOnly: bool = False
+    offlineHosts: dict[str, bool] = field(default_factory=dict)
+
+    @property
+    def online_only_hosts(self) -> set[str]:
+        return self.hosts_available - self.offline_hosts_available
+
+    @property
+    def hosts_available(self) -> set[str]:
+        if self.is_offline and self.offlineOnly:
+            return self.offline_hosts_available
+        return self.all_hosts_listed
+
+    @cached_property
+    def offline_hosts_available(self) -> set[str]:
+        if not self.is_offline:
+            return set()
+        optimism = not any(self.offlineHosts.values())
+        return {h for h in self.all_hosts_listed if self.offlineHosts.get(h, optimism)}
+
+    @cached_property
+    def all_hosts_listed(self) -> set[str]:
+        raw_data = call_for_info(
+            [
+                "nix",
+                "eval",
+                "--extra-experimental-features",
+                "nix-command flakes",
+                "--raw",
+                f"{self.reference}#nixosConfigurations",
+                "--apply",
+                'a: with builtins; concatStringsSep "\\n" (attrNames a) + "\\n"',
+            ],
+            stderr_suppress=True,
+        )
+        return set(raw_data.rstrip("\r\n").splitlines())
+
+    @property
+    def is_offline(self) -> bool:
+        return self.reference.startswith("/nix/store/")
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> ListedFlake:
+        return ListedFlake(**d)
+
+
+@dataclass
 class Settings:
     allowFlakeInput: bool = True
     debugMode: bool = True
     defaultFlake: str = "github:Zocker1999NET/server"
     defaultHost: str = "empty"
     diskoInstallFlags: list[str] = field(default_factory=list)
-    listedFlakes: list[str] = field(default_factory=list)
+    listedFlakes: list[ListedFlake] = field(default_factory=list)
     writeEfiBootEntries: bool | None = None  # None = depending on selected config
 
     @cached_property
     def defaultHostConfig(self) -> ConfigSource:
-        return ConfigSource(self.defaultFlake, self.defaultHost)
+        return ConfigSource(ListedFlake(self.defaultFlake), self.defaultHost)
 
 
 CONFIG = Settings()
@@ -125,7 +176,7 @@ def read_config():
         defaultFlake=data["defaultFlake"],
         defaultHost=data["defaultHost"],
         diskoInstallFlags=data.get("diskoInstallFlags", list()),
-        listedFlakes=data.get("listedFlakes", list()),
+        listedFlakes=list(map(ListedFlake.from_dict, data.get("listedFlakes", list()))),
         writeEfiBootEntries=data.get("writeEfiBootEntries", None),
     )
 
@@ -210,12 +261,8 @@ def mode_select(args):
 
 def install_select():
     options = [
-        SimpleMenuOption(
-            "flake:",
-            f"from {flake}",
-            f"select host configuration from flake:\n{flake}\n\nprobably requires network connectivity",
-        )
-        for flake in sorted(CONFIG.listedFlakes)
+        generate_flake_option(flake)
+        for flake in sorted(CONFIG.listedFlakes, key=lambda f: f.title)
     ]
     options.extend(
         (
@@ -264,7 +311,7 @@ def install_select():
     raise_invalid_choice(sel)
 
 
-def flake_input() -> str | None:
+def flake_input() -> ListedFlake | None:
     print("> insert flake url to retrieve NixOS configurations from")
     print("for example:")
     examples = (
@@ -280,10 +327,10 @@ def flake_input() -> str | None:
         return None
     if user_input == "":
         return None
-    return user_input
+    return ListedFlake(user_input)
 
 
-def host_select(flake: str):
+def host_select(flake: ListedFlake):
     print("collection information for all host configurations, this may take a while …")
     options = [
         # TODO preview_cmd for better performance
@@ -292,7 +339,7 @@ def host_select(flake: str):
             host,
             ConfigSource(flake, host).host_preview,
         )
-        for host in list_nixos_configs(flake)
+        for host in fqdn_sorted(flake.hosts_available)
     ]
     options.append(
         SimpleMenuOption("return", "<return>", "go back to the previous menu"),
@@ -302,7 +349,7 @@ def host_select(flake: str):
         menu = MenuSelection.new(
             MenuDesign(
                 border_label="select host configurations for install",
-                header=flake,
+                header=flake.reference,
                 prompt="host> ",
             ),
             *options,
@@ -691,7 +738,7 @@ class InstallMode(Enum):
     frozen=True,
 )
 class ConfigSource:
-    flake: str
+    flake: ListedFlake
     host: str
 
     def list_disko_disks(self) -> Sequence[DiskName]:
@@ -741,11 +788,11 @@ class ConfigSource:
 
     @property
     def flake_spec(self) -> str:
-        return f'{self.flake}#nixosConfigurations."{self.host}"'
+        return f'{self.flake.reference}#nixosConfigurations."{self.host}"'
 
     @property
     def short_spec(self) -> str:
-        return f"{self.flake}#{self.host}"
+        return f"{self.flake.reference}#{self.host}"
 
 
 DiskName = NewType("DiskName", str)
@@ -808,24 +855,8 @@ class DiskInfo:
         return DiskPath(f"/dev/{self.name}")
 
 
-def list_nixos_configs(flake: str) -> Sequence[str]:
-    raw_data = call_for_info(
-        [
-            "nix",
-            "eval",
-            "--extra-experimental-features",
-            "nix-command flakes",
-            "--raw",
-            f"{flake}#nixosConfigurations",
-            "--apply",
-            'a: with builtins; concatStringsSep "\\n" (attrNames a) + "\\n"',
-        ],
-        stderr_suppress=True,
-    )
-    return sorted(
-        raw_data.rstrip("\r\n").splitlines(),
-        key=fqdn_key,
-    )
+def fqdn_sorted(i: Iterable[str]) -> list[str]:
+    return sorted(i, key=fqdn_key)
 
 
 def fqdn_key(fqdn):
@@ -1043,6 +1074,25 @@ class SimpleMenuOption:
     def output_preview(self) -> NoReturn:
         print(self.description)
         sys.exit(0)
+
+
+def generate_flake_option(flake: ListedFlake) -> SimpleMenuOption:
+    desc = f"select host configuration from flake:\n{flake.reference}"
+    if flake.is_offline:
+        desc += "\n\nfollowing configs are available offline:"
+        desc += "\n- " + "\n- ".join(fqdn_sorted(flake.offline_hosts_available))
+        online_only_hosts = flake.online_only_hosts
+        if online_only_hosts:
+            desc += "\n\nfollowing configs probably require network connectivity:"
+            desc += "\n- " + "\n- ".join(fqdn_sorted(online_only_hosts))
+    else:
+        desc += "\n\nrequires network connectivity"
+        # do not lookup hosts list, as that requires network connectivity
+    return SimpleMenuOption(
+        f"flake:{flake.reference}",
+        f"from {flake.title}",
+        desc,
+    )
 
 
 if __name__ == "__main__":

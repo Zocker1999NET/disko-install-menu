@@ -3,12 +3,10 @@
 {
   config,
   lib,
-  inputs,
   self,
   ...
 }@top:
 let
-  inherit (builtins) attrValues;
   inherit (lib) nixosSystem;
   inherit (lib.attrsets) genAttrs';
 in
@@ -43,38 +41,16 @@ in
             programs.disko-install-menu = {
               enable = true;
               autoStart = true;
+              offlineCapable = true;
               options = {
-                # TODO choose ones accessible to the host
-                defaultFlake = "${./..}";
+                defaultFlake = "${self}";
                 defaultHost = "test-${system}";
               };
+              listedFlakes.defaultFlake = {
+                offlineHosts."test-${system}" = true;
+                offlineReference = self;
+              };
             };
-          }
-          # prepare offline installation (TODO move to actual module)
-          {
-            system.extraDependencies =
-              (with self.nixosConfigurations."test-${system}".config.system.build; [
-                toplevel
-                # disko script (esp. its dependencies)
-                diskoScript
-                formatScript
-                mountScript
-              ])
-              # no idea why those are actually required (has probably something to do with disko)
-              ++ (with pkgs; [
-                makeBinaryWrapper
-                jq.dev
-              ])
-              # pkgs.closureInfo (see <nixpkgs/pkgs/build-support/closure-info.nix>)
-              ++ (with pkgs; [
-                coreutils
-                jq
-                stdenvNoCC
-              ])
-              # bootloader packages
-              ++ (self.nixosConfigurations."test-${system}".config.boot.loader.buildDependencies or [ ])
-              # flake inputs
-              ++ (map (i: "${i}") (attrValues inputs));
           }
           # for test environment only
           {

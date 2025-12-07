@@ -16,6 +16,7 @@ in
   imports = [
     ./autoStart.nix
     ./menuConfig.nix
+    ./offlineCapable.nix
   ];
 
   options.programs.disko-install-menu = {

@@ -39,7 +39,6 @@ in
               };
             };
           }
-          # prepare offine evaluation (TODO move to actual module)
           {
             system.extraDependencies = (map (i: "${i}") (attrValues inputs)); # flake inputs
           }
