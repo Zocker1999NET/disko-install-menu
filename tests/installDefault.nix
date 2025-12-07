@@ -33,7 +33,7 @@ in
   perSystem =
     { pkgs, system, ... }@systemArg:
     {
-      checks.installDefault = pkgs.nixosTest {
+      checks.installDefault = pkgs.testers.nixosTest {
         name = "installDefault";
 
         nodes.node.imports = [

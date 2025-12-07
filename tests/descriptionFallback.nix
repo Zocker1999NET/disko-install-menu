@@ -23,7 +23,7 @@ in
   perSystem =
     { pkgs, ... }@systemArg:
     {
-      checks.descriptionFallback = pkgs.nixosTest {
+      checks.descriptionFallback = pkgs.testers.nixosTest {
         name = "descriptionFallback";
 
         nodes.node.imports = [
