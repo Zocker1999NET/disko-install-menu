@@ -127,7 +127,22 @@ class Settings:
 
     @cached_property
     def defaultHostConfig(self) -> ConfigSource:
-        return ConfigSource(ListedFlake(self.defaultFlake), self.defaultHost)
+        online_flake, offline_flake = self.__search_default_flakes()
+        # replace online flake with offline flake for default host config if offline is given
+        default_flake = (
+            offline_flake.reference
+            if offline_flake is not None
+            and (online_flake is None or online_flake.reference == self.defaultFlake)
+            else self.defaultFlake
+        )
+        return ConfigSource(ListedFlake(default_flake), self.defaultHost)
+
+    def __search_default_flakes(self) -> tuple[ListedFlake | None, ListedFlake | None]:
+        # TODO replace hacky trick with cleaner config syntax
+        DEFAULT_FLAKE_NAME = "default flake"
+        DEFAULT_FLAKE_OFFLINE = f"{DEFAULT_FLAKE_NAME} (offline)"
+        flakes = {f.title: f for f in self.listedFlakes}
+        return flakes.get(DEFAULT_FLAKE_NAME), flakes.get(DEFAULT_FLAKE_OFFLINE)
 
 
 CONFIG = Settings()
