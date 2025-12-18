@@ -176,6 +176,17 @@ def main():
     read_config()
     if args.preview_call:
         return MenuSelection.render_preview(*args.preview_call)
+    if args.debug_test_build:
+        plan = InstallPlan(
+            config=CONFIG.defaultHostConfig,
+            mode=InstallMode.INSTALL,
+            disk_map={"main": "/dev/nonexistent"},
+        )
+        call(
+            plan.pre_generation_cmd(non_interactive=True),
+            safe=True,
+        )
+        return
     mode_select(args)
 
 
@@ -207,6 +218,11 @@ def parse_args():
         "--preview-call",
         nargs=2,  # sub-args are passed to function render_preview(…)
         help="used internally only (to generate previews for fzf)",
+    )
+    parser.add_argument(
+        "--debug-test-build",
+        action="store_true",
+        help="Only & immediately build the default target, useful for testing whether that can be built under current circumstances (e.g. during offline NixOS tests).",
     )
     return parser.parse_args()
 
@@ -626,7 +642,7 @@ class InstallPlan:
             return e
         return True
 
-    def pre_generation_cmd(self) -> Sequence[str] | None:
+    def pre_generation_cmd(self, non_interactive: bool = False) -> Sequence[str] | None:
         """can be executed before installation_cmd to have a fancier progress display
 
         not required to be executed at all
@@ -634,7 +650,7 @@ class InstallPlan:
         if not self.mode.utilizes_prebuild:
             return None
         return [
-            "nom",
+            "nix" if non_interactive else "nom",
             "build",
             "--extra-experimental-features",
             "nix-command flakes",
