@@ -21,7 +21,7 @@ let
     mapAttrs'
     nameValuePair
     ;
-  inherit (lib.lists) flatten;
+  inherit (lib.lists) flatten singleton;
   inherit (lib.modules) mkForce mkIf;
   inherit (lib.options) literalExample mkEnableOption mkOption;
   inherit (lib.trivial) flip;
@@ -102,6 +102,9 @@ let
         [ ]
       )
       )
+      # see <nixpkgs/nixos/modules/config/system-path.nix>, config.system.path
+      # (system.configurationRevision -> nixos-vesion -> environment.systemPackages)
+      (pkgs.writeText "environment.extraSetup-dependencies" config.environment.extraSetup)
     ];
 
   listFlakeDeps =
@@ -179,6 +182,22 @@ in
         coreutils
         jq
         stdenvNoCC
+      ])
+      # <nixpkgs/development/libraries/dbus/make-dbus-conf.nix>, nativeBuildInputs + buildInputs
+      # (system.configurationRevision -> nixos-vesion -> environment.systemPackages
+      #  -> system.path -> services.dbus.packages
+      #  -> <nixpkgs/nixos/modules/services/system/dbus.nix>:configDir)
+      (with pkgs; [
+        libxslt.bin
+        findXMLCatalogs
+        # dbus package should already be loaded
+      ])
+      # <nixpkgs/lib/systemd-lib.nix>, generateUnits
+      # (system.configurationRevision -> nixos-vesion -> environment.systemPackages
+      #  -> system.path -> ? -> systemd.packages
+      #  -> <nixpkgs/nixos/lib/systemd-lib.nix>:generateUnits)
+      (with pkgs; [
+        xorg.lndir
       ])
 
       # == config dependent
