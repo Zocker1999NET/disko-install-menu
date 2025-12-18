@@ -5,5 +5,6 @@
     ./_perSystemConfig.nix
     ./descriptionFallback.nix
     ./installDefault.nix
+    ./offlineBuilds.nix
   ];
 }
