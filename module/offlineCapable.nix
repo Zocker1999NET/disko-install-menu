@@ -104,7 +104,7 @@ let
       )
       # see <nixpkgs/nixos/modules/config/system-path.nix>, config.system.path
       # (system.configurationRevision -> nixos-vesion -> environment.systemPackages)
-      (pkgs.writeText "environment.extraSetup-dependencies" config.environment.extraSetup)
+      (pkgs.writeText "environment.extraSetup-dependencies" host.config.environment.extraSetup)
     ];
 
   listFlakeDeps =
