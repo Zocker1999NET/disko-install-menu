@@ -58,6 +58,10 @@ in
                   writableStore = true;
                 };
               }
+              # make offlineCapable tests fail more likely when installer config is designed more minimalistically
+              {
+                xdg.mime.enable = false;
+              }
             ];
             testScript = ''
               node.start()
