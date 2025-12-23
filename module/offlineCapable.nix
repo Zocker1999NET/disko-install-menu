@@ -105,6 +105,10 @@ let
       # see <nixpkgs/nixos/modules/config/system-path.nix>, config.system.path
       # (system.configurationRevision -> nixos-version -> environment.systemPackages)
       (pkgs.writeText "environment.extraSetup-dependencies" host.config.environment.extraSetup)
+      # system.checks because those are required for changes in .toplevel
+      # (system.configurationRevision -> nixos-version -> environment.systemPackages
+      #  -> system.build.toplevel)
+      host.config.system.checks
     ];
 
   listFlakeDeps =

@@ -20,6 +20,14 @@ let
         self.shortRev or self.dirtyShortRev or self.lastModified or "unknown"
       );
     };
+    systemCheckOnRevision = {
+      # change of configurationRevision triggers requirement on all system.checks
+      imports = [
+        testCases.systemConfigRevision
+      ];
+      # openssh module adds a (seemingly) non-trivial system.checks
+      services.openssh.enable = true;
+    };
   };
   toTemplateName = caseName: "test-${caseName}";
 in
