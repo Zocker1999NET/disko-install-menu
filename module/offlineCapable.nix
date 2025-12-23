@@ -103,7 +103,7 @@ let
       )
       )
       # see <nixpkgs/nixos/modules/config/system-path.nix>, config.system.path
-      # (system.configurationRevision -> nixos-vesion -> environment.systemPackages)
+      # (system.configurationRevision -> nixos-version -> environment.systemPackages)
       (pkgs.writeText "environment.extraSetup-dependencies" host.config.environment.extraSetup)
     ];
 
@@ -184,7 +184,7 @@ in
         stdenvNoCC
       ])
       # <nixpkgs/development/libraries/dbus/make-dbus-conf.nix>, nativeBuildInputs + buildInputs
-      # (system.configurationRevision -> nixos-vesion -> environment.systemPackages
+      # (system.configurationRevision -> nixos-version -> environment.systemPackages
       #  -> system.path -> services.dbus.packages
       #  -> <nixpkgs/nixos/modules/services/system/dbus.nix>:configDir)
       (with pkgs; [
@@ -193,7 +193,7 @@ in
         # dbus package should already be loaded
       ])
       # <nixpkgs/lib/systemd-lib.nix>, generateUnits
-      # (system.configurationRevision -> nixos-vesion -> environment.systemPackages
+      # (system.configurationRevision -> nixos-version -> environment.systemPackages
       #  -> system.path -> ? -> systemd.packages
       #  -> <nixpkgs/nixos/lib/systemd-lib.nix>:generateUnits)
       (with pkgs; [
