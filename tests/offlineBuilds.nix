@@ -77,8 +77,9 @@ in
 
               # ensure offline
               node.block()
-              node.succeed("ip -4 route del default")
-              node.succeed("ip -6 route del default")
+              # (removing routes may fail if no such routes exist)
+              node.execute("ip -4 route del default")
+              node.execute("ip -6 route del default")
               node.fail("ping -c 2 9.9.9.9")
               node.fail("ping -c 2 2620:fe::fe")
 
