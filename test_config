@@ -1,5 +1,11 @@
 {
     "debugMode": true,
     "defaultFlake": "github:Zocker1999NET/server",
-    "defaultHost": "empty"
+    "defaultHost": "empty",
+    "listedFlakes": [
+        {
+            "title": "default flake",
+            "reference": "github:Zocker1999NET/server"
+        }
+    ]
 }
