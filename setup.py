@@ -65,12 +65,15 @@ if not nix_pkg_path.startswith("@"):
     os.environ["PATH"] = f"{nix_pkg_path}:{os.environ['PATH']}"
 
 
-@dataclass
+@dataclass(
+    eq=True,
+    frozen=True,
+)
 class ListedFlake:
     reference: str
     title: str = ""
     offlineOnly: bool = False
-    offlineHosts: dict[str, bool] = field(default_factory=dict)
+    offlineHosts: dict[str, bool] = field(default_factory=dict, hash=False)
 
     @property
     def online_only_hosts(self) -> set[str]:
@@ -109,6 +112,11 @@ class ListedFlake:
     @property
     def is_offline(self) -> bool:
         return self.reference.startswith("/nix/store/")
+
+    @property
+    def str_key(self) -> str:
+        "can be used as a string key to re-identify the same ListedFlake object from a list of them"
+        return str(hash(self))
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> ListedFlake:
@@ -291,6 +299,7 @@ def mode_select(args):
 
 
 def install_select():
+    flake_by_key = {f.str_key: f for f in CONFIG.listedFlakes}
     options = [
         generate_flake_option(flake)
         for flake in sorted(CONFIG.listedFlakes, key=lambda f: f.title)
@@ -333,7 +342,8 @@ def install_select():
                 host_select(user_flake)
             continue
         if sel.tag.startswith("flake:"):
-            host_select(sel.tag[6:])
+            flake_obj = flake_by_key[sel.tag[6:]]
+            host_select(flake_obj)
             continue
         if sel.tag == "default_host":
             host_menu(CONFIG.defaultHostConfig)
@@ -1120,7 +1130,7 @@ def generate_flake_option(flake: ListedFlake) -> SimpleMenuOption:
         desc += "\n\nrequires network connectivity"
         # do not lookup hosts list, as that requires network connectivity
     return SimpleMenuOption(
-        f"flake:{flake.reference}",
+        f"flake:{flake.str_key}",
         f"from {flake.title}",
         desc,
     )
