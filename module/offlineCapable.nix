@@ -68,7 +68,7 @@ let
   flakeDependencies =
     flake:
     let
-      deps = (attrValues flake.inputs);
+      deps = (attrValues flake.inputs or { });
     in
     # string context from flake important for dependency resolution (i.e. do not use unsafeDiscardStringContext)
     # for more about string context, see:
