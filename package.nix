@@ -49,6 +49,6 @@ replaceVarsWith {
   meta = {
     description = "Interactive installation menu for disko flake configurations";
     license = lib.licenses.mit; # SPDX-License-Identifier: MIT (so tools can find this reference)
-    mainProgram = "disko-install-menu";
+    mainProgram = name;
   };
 }
