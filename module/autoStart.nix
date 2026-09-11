@@ -1,4 +1,3 @@
-# type: NixOS module
 {
   config,
   lib,
@@ -15,6 +14,8 @@ let
   inherit (lib.options) mkEnableOption;
 in
 {
+
+  _class = "nixos";
 
   options.programs.disko-install-menu = {
 

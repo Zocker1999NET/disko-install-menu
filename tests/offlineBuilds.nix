@@ -1,4 +1,3 @@
-# type: flake-parts module
 # tests whether certain NixOS configurations can be built fully offline
 {
   lib,
@@ -32,6 +31,8 @@ let
   toTemplateName = caseName: "test-${caseName}";
 in
 {
+  _class = "flake";
+
   perSystem =
     { pkgs, system, ... }@systemArg:
     {

@@ -1,4 +1,3 @@
-# type: NixOS module
 {
   config,
   lib,
@@ -134,6 +133,8 @@ let
   listedFlakes = filterAttrs (_: x: x.enabled) cfg.listedFlakes;
 in
 {
+
+  _class = "nixos";
 
   options.programs.disko-install-menu = {
 

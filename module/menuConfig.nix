@@ -1,4 +1,3 @@
-# type: NixOS module
 {
   config,
   lib,
@@ -177,6 +176,8 @@ let
   };
 in
 {
+
+  _class = "nixos";
 
   options.programs.disko-install-menu = {
     options = mkOption {

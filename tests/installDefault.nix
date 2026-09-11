@@ -1,4 +1,3 @@
-# type: flake-parts module
 # test whether system.description can be rendered even when support module is not loaded by selected config
 {
   config,
@@ -11,6 +10,8 @@ let
   inherit (lib.attrsets) genAttrs';
 in
 {
+
+  _class = "flake";
 
   flake.nixosConfigurations = genAttrs' config.systems (system: {
     name = "test-${system}";

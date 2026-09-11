@@ -1,4 +1,3 @@
-# type: NixOS module
 {
   config,
   lib,
@@ -12,6 +11,8 @@ let
   inherit (lib.options) mkEnableOption mkPackageOption;
 in
 {
+
+  _class = "nixos";
 
   imports = [
     ./autoStart.nix

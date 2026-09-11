@@ -1,4 +1,3 @@
-# type: flake-parts module
 # test whether system.description can be rendered even when support module is not loaded by selected config
 {
   lib,
@@ -11,6 +10,8 @@ let
   inherit (lib) nixosSystem;
 in
 {
+
+  _class = "flake";
 
   flake.nixosConfigurations.test-descriptionFallback = nixosSystem {
     modules = [
