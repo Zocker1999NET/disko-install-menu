@@ -331,8 +331,12 @@ in
       (flip mapAttrsToList listedFlakes (
         name:
         { reference, offlineReference, ... }:
+        let
+          toStringOrNull = x: if x == null then null else "${x}";
+        in
         {
-          assertion = reference != offlineReference;
+          # string conversion for more resilient comparison in case user already converted one to string
+          assertion = toStringOrNull reference != toStringOrNull offlineReference;
           message = concatStringsSep " " [
             "programs.disko-install-menu.listedFlakes.${name}:"
             "declaring offlineCapable flake entry with .reference == .offlineReference is not supported,"
