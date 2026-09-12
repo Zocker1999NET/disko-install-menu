@@ -18,7 +18,6 @@ let
   inherit (lib.attrsets)
     filterAttrs
     mapAttrs'
-    nameValuePair
     ;
   inherit (lib.lists) flatten singleton;
   inherit (lib.modules) mkForce mkIf;
@@ -217,16 +216,17 @@ in
           let
             offlineRef = "${v.offlineReference}";
             onlyLocked = v.offlineReference == true || v.reference == offlineRef;
+          in
+          {
             # overwrite original entry if only offline / locked available
             name = if onlyLocked then n else "${n}_offline";
-            val = mkForce {
+            value = mkForce {
               title = "${v.title} (offline)";
               reference = if onlyLocked then v.reference else offlineRef;
               inherit (v) offlineHosts;
               offlineOnly = !onlyLocked;
             };
-          in
-          nameValuePair name val
+          }
         );
       };
     };
