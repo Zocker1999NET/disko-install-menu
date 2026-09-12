@@ -9,6 +9,7 @@ let
 
   inherit (builtins)
     attrValues
+    concatLists
     filter
     mapAttrs
     ;
@@ -185,6 +186,17 @@ let
 
     };
   };
+
+  # assertions for both .options.listedFlakes & .listedFlakes directly
+  # TODO replace with <server> flake's assertions passthrough module complex
+  entryAssertions =
+    prefix: entries:
+    [
+      {
+        assertion = entries != [ ];
+        message = "${prefix}: must not be empty";
+      }
+    ];
 in
 {
 
@@ -221,11 +233,9 @@ in
 
   config = mkIf cfg.enable {
 
-    assertions = [
-      {
-        assertion = cfg.listedFlakes != { };
-        message = "programs.disko-install-menu.listedFlakes must not be empty";
-      }
+    assertions = concatLists [
+      (entryAssertions "programs.disko-install-menu.listedFlakes" (attrValues cfg.listedFlakes))
+      (entryAssertions "programs.disko-install-menu.options.listedFlakes" cfg.options.listedFlakes)
     ];
 
     # moved to /etc so config applies when disko-install-menu is just called by itself
