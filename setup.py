@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 import argparse
+import json
+import os
+import random
+import shlex
+import subprocess
+import sys
+import time
 from collections.abc import (
-    Iterator,
+    Callable,
+    Generator,
     Iterable,
+    Iterator,
     Mapping,
     Sequence,
 )
@@ -21,35 +30,24 @@ from enum import (
 from functools import (
     cached_property,
 )
-import json
 from multiprocessing.connection import (
     Client,
     Listener,
 )
-import os
 from pathlib import Path
-import random
-import shlex
-import subprocess
-import sys
 from threading import (
     Thread,
 )
-import time
 from typing import (
     Any,
-    Callable,
-    Generator,
     Literal,
     NewType,
     NoReturn,
     ParamSpec,
     Protocol,
-    TypedDict,
     assert_never,
     cast,
 )
-
 
 APP_NAME = "@name@"
 if APP_NAME.startswith("@"):
@@ -1037,14 +1035,17 @@ class MenuSelection:
         )
         thread.start()
         try:
-            yield shlex.join(
-                (
-                    sys.executable,
-                    sys.argv[0],
-                    "--preview-call",
-                    cast(str, listener.address),  # because family="AF_UNIX"
+            yield (
+                shlex.join(
+                    (
+                        sys.executable,
+                        sys.argv[0],
+                        "--preview-call",
+                        cast(str, listener.address),  # because family="AF_UNIX"
+                    )
                 )
-            ) + " {}"  # placeholder for fzf, required to be unescaped
+                + " {}"
+            )  # placeholder for fzf, required to be unescaped
         finally:
             conn = Client(family="AF_UNIX", address=listener.address)
             conn.send(exit_code)
@@ -1094,7 +1095,6 @@ class MenuDesign:
 
 
 class MenuOption(Protocol):
-
     @property
     def tag(self) -> str: ...
 
