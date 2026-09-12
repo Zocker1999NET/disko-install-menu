@@ -256,7 +256,7 @@ in
               title = "${v.title} (offline)";
               reference = if onlyLocked then v.reference else offlineRef;
               inherit (v) offlineHosts;
-              offlineOnly = !onlyLocked;
+              offlineOnly = onlyLocked;
             };
           }
         );
