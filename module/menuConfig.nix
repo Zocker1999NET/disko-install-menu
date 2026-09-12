@@ -30,6 +30,13 @@ let
       freeformType = cfgFormat.type;
       options = {
         enabled = mkDisableOption "this flake entry";
+        name = mkOption {
+          description = "Name of this flake entry attr, used primarily for assertions and error messages.";
+          internal = true;
+          readOnly = true;
+          type = types.str;
+          default = name;
+        };
         title = mkOption {
           description = "Title of this flake entry, displayed to the user.";
           type = types.str;
@@ -140,6 +147,7 @@ let
           (filter (v: v.enabled))
           (map (v: {
             inherit (v)
+              name
               title
               reference
               offlineHosts

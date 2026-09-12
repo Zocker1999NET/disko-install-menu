@@ -68,6 +68,8 @@ if not nix_pkg_path.startswith("@"):
     frozen=True,
 )
 class ListedFlake:
+    name: str
+    "attr name in definition"
     reference: str
     title: str = ""
     offlineOnly: bool = False
@@ -208,7 +210,7 @@ def read_config():
         defaultFlake=data["defaultFlake"],
         defaultHost=data["defaultHost"],
         diskoInstallFlags=data.get("diskoInstallFlags", []),
-        listedFlakes=list(map(ListedFlake.from_dict, data.get("listedFlakes", []))),
+        listedFlakes=[ListedFlake.from_dict(d) for d in data.get("listedFlakes", [])],
         writeEfiBootEntries=data.get("writeEfiBootEntries", None),
     )
 
