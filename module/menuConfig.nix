@@ -65,11 +65,6 @@ let
       };
     }
   );
-  flakesTypeCoerced =
-    with types;
-    coercedTo (listOf str) (flip genAttrs (_: {
-      enabled = true;
-    })) (attrsOf flakesType);
 
   menuOptions = types.submodule {
     freeformType = cfgFormat.type;
@@ -138,7 +133,7 @@ let
           Prefer {option}`programs.disko-install-menu.listedFlakes`.
         '';
         internal = true;
-        type = flakesTypeCoerced;
+        type = types.attrsOf flakesType;
         example = singleton "github:Zocker1999NET/server";
         apply = flip pipe [
           attrValues
