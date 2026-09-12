@@ -155,9 +155,10 @@ this could look like this (not tested, please report your success / issues):
           {
             programs.disko-install-menu = {
               enable = true;
-              options = {
+              listedFlakes.default = {
+                isDefaultFlake = true;
                 # set those to your liking
-                defaultFlake = "github:Zocker1999NET/server";
+                reference = "github:Zocker1999NET/server";
                 defaultHost = "empty";
               };
             };
