@@ -359,7 +359,7 @@ in
               # loadFlake cannot return null cause we filter for offlineCapable flakes only
               reference = "${buildOfflineFlake (loadFlake flakeEntry)}";
               inherit offlineHosts;
-              offlineOnly = !onlineCapable;
+              offlineOnly = true;
             };
           }
         );
