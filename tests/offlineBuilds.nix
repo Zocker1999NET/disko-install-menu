@@ -19,7 +19,9 @@ in
   perSystem =
     { pkgs, system, ... }@systemArg:
     let
-      testCases = target.nixosTemplates.${system};
+      testCases = removeAttrs target.nixosTemplates.${system} [
+        config.tests.installDefault.targetConfig
+      ];
     in
     {
       checks = flip mapAttrs' testCases (

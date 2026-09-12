@@ -1,36 +1,43 @@
 # test whether system.description can be rendered even when support module is not loaded by selected config
 {
   config,
+  inputs,
   lib,
   self,
   ...
 }@top:
 let
-  inherit (lib) nixosSystem;
-  inherit (lib.attrsets) genAttrs';
+  inherit (lib) types;
+  inherit (lib.options) mkOption;
+
+  # see its README for why configs are provided by a separate flake
+  target = inputs.disko-install-menu-target;
+
+  cfg = config.tests.installDefault;
 in
 {
 
   _class = "flake";
 
-  flake.nixosConfigurations = genAttrs' config.systems (system: {
-    name = "test-${system}";
-    value = nixosSystem {
-      modules = [
-        self.nixosModules.test-configDefaults
-        # installer prefix
-        self.nixosModules.support
-        {
-          # also heavily speeds up rendering description of configuration
-          system.description = "config intended to be only used by nixosTests testing disko-install-menu";
-        }
-      ];
-      inherit system;
-    };
-  });
+  options = {
+    tests.installDefault.targetConfig = mkOption {
+      description = ''
+        The name of the configuration to be used for the installDefault test.
 
-  perSystem =
+        - system / architecture will be appended to the name.
+        - provided for offlineBuilds.nix to not test offline-building this config twice
+      '';
+      type = types.str;
+      internal = true;
+      default = "test-minimal";
+    };
+  };
+
+  config.perSystem =
     { pkgs, system, ... }@systemArg:
+    let
+      configName = "${cfg.targetConfig}_${system}";
+    in
     {
       checks.installDefault = pkgs.testers.nixosTest {
         name = "installDefault";
@@ -44,10 +51,10 @@ in
               autoStart = true;
               offlineCapable = true;
               listedFlakes.default = {
-                offlineReference = self;
+                offlineReference = target;
                 isDefaultFlake = true;
-                defaultHost = "test-${system}";
-                offlineHosts."test-${system}" = true;
+                defaultHost = configName;
+                offlineHosts.${configName} = true;
               };
             };
           }
