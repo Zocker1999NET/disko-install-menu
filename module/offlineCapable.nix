@@ -27,6 +27,7 @@ let
   inherit (lib.modules)
     mkForce
     mkIf
+    mkOptionDefault
     ;
   inherit (lib.options) literalExample mkEnableOption mkOption;
   inherit (lib.trivial) flip;
@@ -45,7 +46,7 @@ let
           type = types.bool;
           internal = true;
           readOnly = true;
-          default = config.enabled && config.offlineReference != false;
+          default = config.enabled && config.offlineReference != null;
         };
         onlineCapable = mkOption {
           description = ''
@@ -57,7 +58,7 @@ let
           type = types.bool;
           internal = true;
           readOnly = true;
-          default = config.enabled && config.offlineReference != true;
+          default = config.enabled && config.reference != null;
         };
 
         offlineReference = mkOption {
@@ -75,24 +76,26 @@ let
             - a locked flake reference (as string)
             - the attrset of loaded flake
               (i.e. `self` or `inputs.*`)
-            - `true` to use {option}`.reference` as a locked flake reference
-            - `false` if this flake should not made available offline
+            - `null` if this flake should not made available offline
 
             (When using `--impure`, you may use unlocked flake references as well.)
           '';
           type =
             with types;
-            oneOf [
-              bool
+            nullOr (oneOf [
               str
               (raw // { description = "flake attrset"; })
-            ];
+            ]);
           default = config.reference;
           example = literalExample "inputs.disko-install-menu";
         };
 
         # offlineHosts defined in ./menuConfig.nix
 
+      };
+      config = {
+        # default to null when offlineReference is set
+        reference = mkIf config.offlineCapable (mkOptionDefault null);
       };
     }
   );

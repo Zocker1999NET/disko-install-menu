@@ -25,7 +25,7 @@ let
 
   attrNamesToTrue = with types; coercedTo (listOf str) (flip genAttrs (_: true)) (attrsOf bool);
   flakesType = types.submodule (
-    { name, ... }:
+    { name, options, ... }:
     {
       freeformType = cfgFormat.type;
       options = {
@@ -46,11 +46,11 @@ let
         reference = mkOption {
           description = ''
             Flake reference of this entry. The flake entry may be locked or unlocked.
-
-            To hide an entry, set its reference to `null`.
           '';
-          type = with types; nullOr str;
-          default = name;
+          # weird trick to make it accept null if offlineReference is also declared
+          #   because ./offlineCapable.nix cannot override its type to accept null
+          #   and it must not allow null as part of the passthrough options
+          type = if options ? offlineReference then with types; nullOr str else types.str;
           example = "github:Zocker1999NET/disko-install-menu";
         };
         # defined here because required for clean export
