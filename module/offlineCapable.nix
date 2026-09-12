@@ -19,8 +19,8 @@ let
     ;
   inherit (lib) types;
   inherit (lib.attrsets)
+    concatMapAttrs
     filterAttrs
-    mapAttrs'
     mapAttrsToList
     ;
   inherit (lib.lists) flatten singleton;
@@ -351,7 +351,7 @@ in
 
     programs.disko-install-menu = {
       options = {
-        listedFlakes = flip mapAttrs' listedFlakes (
+        listedFlakes = flip concatMapAttrs listedFlakes (
           n:
           {
             title,
@@ -361,8 +361,7 @@ in
           }@flakeEntry:
           {
             # overwrite original entry if only offline / locked available
-            name = if onlineCapable then "${n}_offline" else n;
-            value = mkForce {
+            ${if onlineCapable then "${n}_offline" else n} = mkForce {
               title = "${title} (offline)";
               # loadFlake cannot return null cause we filter for offlineCapable flakes only
               reference = "${buildOfflineFlake (loadFlake flakeEntry)}";
