@@ -24,7 +24,10 @@ let
     mapAttrsToList
     ;
   inherit (lib.lists) flatten singleton;
-  inherit (lib.modules) mkForce mkIf;
+  inherit (lib.modules)
+    mkForce
+    mkIf
+    ;
   inherit (lib.options) literalExample mkEnableOption mkOption;
   inherit (lib.trivial) flip;
 
@@ -358,7 +361,9 @@ in
               title = "${title} (offline)";
               # loadFlake cannot return null cause we filter for offlineCapable flakes only
               reference = "${buildOfflineFlake (loadFlake flakeEntry)}";
-              inherit offlineHosts;
+              inherit
+                offlineHosts
+                ;
               offlineOnly = true;
             };
           }
