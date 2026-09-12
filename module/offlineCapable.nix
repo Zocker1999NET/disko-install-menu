@@ -9,6 +9,7 @@ let
 
   inherit (builtins)
     any
+    attrNames
     attrValues
     concatLists
     concatMap
@@ -23,7 +24,7 @@ let
     filterAttrs
     mapAttrsToList
     ;
-  inherit (lib.lists) flatten singleton;
+  inherit (lib.lists) flatten singleton subtractLists;
   inherit (lib.modules)
     mkForce
     mkIf
@@ -348,6 +349,21 @@ in
             "as it produces one non-working & one working entry in the menu,"
             "use .offlineReference = true instead"
           ];
+        }
+      ))
+      (flip mapAttrsToList listedFlakes (
+        name:
+        { flake, offlineHosts, ... }:
+        let
+          definedHosts = attrNames (flake.nixosConfigurations or { });
+          unknownHosts = subtractLists definedHosts (attrNames offlineHosts);
+        in
+        {
+          assertion = unknownHosts == [ ];
+          message = ''
+            programs.disko-install-menu.listedFlakes.${name}.offlineHosts: following hosts are not defined by the flake:
+            ${concatStringsSep "\n" (map (h: "- ${h}") unknownHosts)}
+          '';
         }
       ))
     ];
