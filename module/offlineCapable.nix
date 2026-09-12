@@ -43,6 +43,18 @@ let
           readOnly = true;
           default = config.enabled && config.offlineReference != false;
         };
+        onlineCapable = mkOption {
+          description = ''
+            Whether the online-capable version of this flake's entry must be preserved
+            (as provided by ./menuConfig.nix).
+
+            Derived from {option}`.enabled` and {option}`.offlineReference`.
+          '';
+          type = types.bool;
+          internal = true;
+          readOnly = true;
+          default = config.enabled && config.offlineReference != true;
+        };
 
         offlineReference = mkOption {
           description = ''
@@ -247,16 +259,15 @@ in
           n: v:
           let
             offlineRef = "${v.offlineReference}";
-            onlyLocked = v.offlineReference == true;
           in
           {
             # overwrite original entry if only offline / locked available
-            name = if onlyLocked then n else "${n}_offline";
+            name = if v.onlineCapable then "${n}_offline" else n;
             value = mkForce {
               title = "${v.title} (offline)";
-              reference = if onlyLocked then v.reference else offlineRef;
+              reference = if v.onlineCapable then offlineRef else v.reference;
               inherit (v) offlineHosts;
-              offlineOnly = onlyLocked;
+              offlineOnly = !v.onlineCapable;
             };
           }
         );
