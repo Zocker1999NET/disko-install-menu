@@ -186,7 +186,7 @@ def main():
         plan = InstallPlan(
             config=CONFIG.defaultHostConfig,
             mode=InstallMode.INSTALL,
-            disk_map={"main": "/dev/nonexistent"},
+            disk_map={DiskName("main"): DiskPath("/dev/nonexistent")},
         )
         call(
             plan.pre_generation_cmd(non_interactive=True),
@@ -207,8 +207,8 @@ def read_config():
         debugMode=data.get("debugMode", False),
         defaultFlake=data["defaultFlake"],
         defaultHost=data["defaultHost"],
-        diskoInstallFlags=data.get("diskoInstallFlags", list()),
-        listedFlakes=list(map(ListedFlake.from_dict, data.get("listedFlakes", list()))),
+        diskoInstallFlags=data.get("diskoInstallFlags", []),
+        listedFlakes=list(map(ListedFlake.from_dict, data.get("listedFlakes", []))),
         writeEfiBootEntries=data.get("writeEfiBootEntries", None),
     )
 
@@ -296,9 +296,9 @@ def mode_select(args):
     raise_invalid_choice(sel)
 
 
-def install_select():
+def install_select() -> None:
     flake_by_key = {f.str_key: f for f in CONFIG.listedFlakes}
-    options = [
+    options: list[MenuOption | None] = [
         generate_flake_option(flake)
         for flake in sorted(CONFIG.listedFlakes, key=lambda f: f.title)
     ]
@@ -369,7 +369,7 @@ def flake_input() -> ListedFlake | None:
     return ListedFlake(user_input)
 
 
-def host_select(flake: ListedFlake):
+def host_select(flake: ListedFlake) -> None:
     print("collection information for all host configurations, this may take a while …")
     options = [
         # TODO preview_cmd for better performance
@@ -403,7 +403,7 @@ def host_select(flake: ListedFlake):
     raise_invalid_choice(sel)
 
 
-def host_menu(config: ConfigSource):
+def host_menu(config: ConfigSource) -> None:
     while True:
         menu = MenuSelection.new(
             MenuDesign(border_label="what do you want to do?", header="install …"),
@@ -860,7 +860,8 @@ class DiskInfo:
             ]
         )
         json_data = json.loads(raw_data)
-        for dev_type, devices in json_data.items():
+        # keys of json_data is "blockdevices" most of the time -> not useful info
+        for devices in json_data.values():
             for disk_data in devices:
                 yield DiskInfo(
                     name=disk_data["name"],
@@ -913,6 +914,7 @@ def call_for_info(
         ["/usr/bin/env"] + list(cmd),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE if stderr_suppress else None,
+        check=False,
         text=True,
     )
     if ignore_errors:
@@ -933,7 +935,7 @@ def call(
     echo: bool = True,
 ) -> None:
     if cmd is None:
-        return None
+        return
     if isinstance(cmd, str):
         cmd = shlex.split(cmd)
     else:
