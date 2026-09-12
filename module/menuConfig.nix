@@ -7,7 +7,11 @@
 let
   cfg = config.programs.disko-install-menu;
 
-  inherit (builtins) attrValues filter mapAttrs;
+  inherit (builtins)
+    attrValues
+    filter
+    mapAttrs
+    ;
   inherit (lib) types;
   inherit (lib.attrsets) filterAttrs genAttrs;
   inherit (lib.lists) singleton;
@@ -140,7 +144,11 @@ let
           attrValues
           (filter (v: v.enabled))
           (map (v: {
-            inherit (v) title reference offlineHosts;
+            inherit (v)
+              title
+              reference
+              offlineHosts
+              ;
           }))
         ];
       };
@@ -209,6 +217,7 @@ in
   };
 
   config = mkIf cfg.enable {
+
     # moved to /etc so config applies when disko-install-menu is just called by itself
     environment.etc."disko-install-menu/config".source =
       cfgFormat.generate "disko-install-menu-config" cfg.options;
@@ -227,13 +236,17 @@ in
           (filterAttrs (_: v: v.enabled))
           (mapAttrs (
             _: v: {
-              inherit (v) title reference;
+              inherit (v)
+                title
+                reference
+                ;
             }
           ))
         ];
       };
 
     };
+
   };
 
 }
