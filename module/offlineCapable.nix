@@ -28,6 +28,19 @@ let
     { config, ... }:
     {
       options = {
+
+        offlineCapable = mkOption {
+          description = ''
+            Whether this flake entry must be prepared to become offline capable.
+
+            Derived from {option}`.enabled` and {option}`.offlineReference`.
+          '';
+          type = types.bool;
+          internal = true;
+          readOnly = true;
+          default = config.enabled && config.offlineReference != false;
+        };
+
         offlineReference = mkOption {
           description = ''
             Offline flake reference of this entry.
@@ -129,7 +142,7 @@ let
     in
     if flake == null then [ ] else deps;
 
-  listedFlakes = filterAttrs (_: x: x.enabled) cfg.listedFlakes;
+  listedFlakes = filterAttrs (_: x: x.offlineCapable) cfg.listedFlakes;
 in
 {
 
