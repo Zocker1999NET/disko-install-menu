@@ -256,15 +256,22 @@ in
     programs.disko-install-menu = {
       options = {
         listedFlakes = flip mapAttrs' listedFlakes (
-          n: v: {
+          n:
+          {
+            title,
+            offlineHosts,
+            onlineCapable,
+            ...
+          }@flakeEntry:
+          {
             # overwrite original entry if only offline / locked available
-            name = if v.onlineCapable then "${n}_offline" else n;
+            name = if onlineCapable then "${n}_offline" else n;
             value = mkForce {
-              title = "${v.title} (offline)";
+              title = "${title} (offline)";
               # loadFlake cannot return null cause we filter for offlineCapable flakes only
-              reference = "${loadFlake v}";
-              inherit (v) offlineHosts;
-              offlineOnly = !v.onlineCapable;
+              reference = "${loadFlake flakeEntry}";
+              inherit offlineHosts;
+              offlineOnly = !onlineCapable;
             };
           }
         );
