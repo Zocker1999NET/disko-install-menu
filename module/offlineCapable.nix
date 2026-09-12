@@ -199,6 +199,10 @@ let
 
   listHostDeps =
     host:
+    let
+      # use host.pkgs in case config uses different nixpkgs than installer
+      inherit (host) pkgs;
+    in
     flatten [
 
       # == config independent
