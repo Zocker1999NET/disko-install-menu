@@ -364,7 +364,7 @@ def flake_input() -> ListedFlake | None:
         return None
     if user_input == "":
         return None
-    return ListedFlake(user_input)
+    return ListedFlake(name="user_flake", reference=user_input)
 
 
 def host_select(flake: ListedFlake) -> None:
