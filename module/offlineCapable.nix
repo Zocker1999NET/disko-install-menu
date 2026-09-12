@@ -200,6 +200,37 @@ let
   listHostDeps =
     host:
     flatten [
+
+      # == config independent
+      (with pkgs; [
+
+        # no idea why those are actually required (has probably something to do with disko)
+        makeBinaryWrapper
+        jq.dev
+
+        # pkgs.closureInfo (see <nixpkgs/pkgs/build-support/closure-info.nix>)
+        coreutils
+        jq
+        stdenvNoCC
+
+        # <nixpkgs/development/libraries/dbus/make-dbus-conf.nix>, nativeBuildInputs + buildInputs
+        # (system.configurationRevision -> nixos-version -> environment.systemPackages
+        #  -> system.path -> services.dbus.packages
+        #  -> <nixpkgs/nixos/modules/services/system/dbus.nix>:configDir)
+        libxslt.bin
+        findXMLCatalogs
+        # dbus package should already be loaded
+
+        # <nixpkgs/lib/systemd-lib.nix>, generateUnits
+        # (system.configurationRevision -> nixos-version -> environment.systemPackages
+        #  -> system.path -> ? -> systemd.packages
+        #  -> <nixpkgs/nixos/lib/systemd-lib.nix>:generateUnits)
+        xorg.lndir
+
+      ])
+
+      # == config dependent
+
       (with host.config.system.build; [
         toplevel
         # disko scripts (esp. its dependencies)
@@ -221,6 +252,7 @@ let
       # (system.configurationRevision -> nixos-version -> environment.systemPackages
       #  -> system.build.toplevel)
       host.config.system.checks
+
     ];
 
   listFlakeDeps =
@@ -303,41 +335,7 @@ in
       ))
     ];
 
-    system.extraDependencies = flatten [
-
-      # == config independent
-      # no idea why those are actually required (has probably something to do with disko)
-      (with pkgs; [
-        makeBinaryWrapper
-        jq.dev
-      ])
-      # pkgs.closureInfo (see <nixpkgs/pkgs/build-support/closure-info.nix>)
-      (with pkgs; [
-        coreutils
-        jq
-        stdenvNoCC
-      ])
-      # <nixpkgs/development/libraries/dbus/make-dbus-conf.nix>, nativeBuildInputs + buildInputs
-      # (system.configurationRevision -> nixos-version -> environment.systemPackages
-      #  -> system.path -> services.dbus.packages
-      #  -> <nixpkgs/nixos/modules/services/system/dbus.nix>:configDir)
-      (with pkgs; [
-        libxslt.bin
-        findXMLCatalogs
-        # dbus package should already be loaded
-      ])
-      # <nixpkgs/lib/systemd-lib.nix>, generateUnits
-      # (system.configurationRevision -> nixos-version -> environment.systemPackages
-      #  -> system.path -> ? -> systemd.packages
-      #  -> <nixpkgs/nixos/lib/systemd-lib.nix>:generateUnits)
-      (with pkgs; [
-        xorg.lndir
-      ])
-
-      # == config dependent
-      (map listFlakeDeps (attrValues listedFlakes))
-
-    ];
+    system.extraDependencies = flatten (map listFlakeDeps (attrValues listedFlakes));
 
     programs.disko-install-menu = {
       options = {
