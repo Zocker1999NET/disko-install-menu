@@ -94,6 +94,20 @@ let
 
         # offlineHosts defined in ./menuConfig.nix
 
+        flake = mkOption {
+          description = "The loaded flake of this entry, so it is only loaded once.";
+          type = types.raw // {
+            description = "flake attrset";
+          };
+          internal = true;
+          readOnly = true;
+          default =
+            let
+              ref = config.offlineReference;
+            in
+            if isAttrs ref then ref else getFlake ref;
+        };
+
       };
       config = {
         # default to null when offlineReference is set
@@ -101,15 +115,6 @@ let
       };
     }
   );
-
-  loadFlake =
-    { reference, offlineReference, ... }:
-    if offlineReference == false then
-      null
-    else if isAttrs offlineReference then
-      offlineReference
-    else
-      getFlake (if offlineReference == true then reference else offlineReference);
 
   # recursively walk all inputs of flake and return a list of `{ path, storePath }`
   flakeInputs =
@@ -269,13 +274,13 @@ let
 
   listFlakeDeps =
     {
+      flake,
       reference,
       offlineReference,
       offlineHosts,
       ...
-    }@flakeEntry:
+    }:
     let
-      flake = loadFlake flakeEntry;
       optimism = !(any (x: x) (attrValues offlineHosts));
       selectedHosts = flip filterAttrs flake.nixosConfigurations (
         name: _: offlineHosts.${name} or optimism
@@ -355,12 +360,13 @@ in
           n:
           {
             title,
+            flake,
             isDefaultFlake,
             defaultHost,
             offlineHosts,
             onlineCapable,
             ...
-          }@flakeEntry:
+          }:
           {
             # suppress default if both offline & online available
             ${if onlineCapable then n else null} = {
@@ -369,8 +375,7 @@ in
             # overwrite original entry if only offline / locked available
             ${if onlineCapable then "${n}_offline" else n} = mkForce {
               title = "${title} (offline)";
-              # loadFlake cannot return null cause we filter for offlineCapable flakes only
-              reference = "${buildOfflineFlake (loadFlake flakeEntry)}";
+              reference = "${buildOfflineFlake flake}";
               inherit
                 isDefaultFlake
                 defaultHost
