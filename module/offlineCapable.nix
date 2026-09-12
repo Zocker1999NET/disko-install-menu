@@ -78,7 +78,9 @@ let
               (i.e. `self` or `inputs.*`)
             - `null` if this flake should not made available offline
 
-            (When using `--impure`, you may use unlocked flake references as well.)
+            For more info about locked flake references, read the
+            [nix manual on `builtins.getFlake`](https://nix.dev/manual/nix/latest/language/builtins.html#builtins-getFlake).
+            When using `--impure`, you may use unlocked flake references as well.
           '';
           type =
             with types;
@@ -86,7 +88,7 @@ let
               str
               (raw // { description = "flake attrset"; })
             ]);
-          default = config.reference;
+          default = false;
           example = literalExample "inputs.disko-install-menu";
         };
 
@@ -296,17 +298,13 @@ in
     offlineCapable = mkEnableOption ''
       offline capability for this installer.
 
-      Using this option either requires the flake definition
-      of each flake in {option}`programs.disko-install-menu.listedFlakes.*.offlineReference` to be locked,
-      or the nix option `--impure` to be set.
-      `offlineReference` may also set to {variable}`false`
-      to opt out that flake from offline caching.
+      By default all flake entries are considered online capable only.
+      For a flake to become offline capable,
+      you must set {option}`programs.disko-install-menu.listedFlakes.*.offlineReference`
+      to a valid flake reference.
       With {option}`programs.disko-install-menu.listedFlakes.*.offlineHosts`,
       one can select or deselect certain NixOS configurations
       from being cached for an offline installation.
-
-      For more info about locked flake references, read the
-      [nix manual on `builtins.getFlake`](https://nix.dev/manual/nix/latest/language/builtins.html#builtins-getFlake).
 
       In theory, this should allow disko-install-menu
       to install the selected configurations
