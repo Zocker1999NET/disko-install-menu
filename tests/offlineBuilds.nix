@@ -1,47 +1,32 @@
 # tests whether certain NixOS configurations can be built fully offline
 {
+  config,
+  inputs,
   lib,
   self,
   ...
 }@top:
 let
-  inherit (lib) nixosSystem;
   inherit (lib.attrsets) mapAttrs' nameValuePair;
   inherit (lib.trivial) flip;
 
-  # test configurations
-  testCases = {
-    minimal = { };
-    systemConfigRevision = {
-      # reflects a value which differs in online vs offline evaluation
-      # (system.configurationRevision -> nixos-version -> environment.systemPackages)
-      system.configurationRevision = toString (
-        self.shortRev or self.dirtyShortRev or self.lastModified or "unknown"
-      );
-    };
-    systemCheckOnRevision = {
-      # change of configurationRevision triggers requirement on all system.checks
-      imports = [
-        testCases.systemConfigRevision
-      ];
-      # openssh module adds a (seemingly) non-trivial system.checks
-      services.openssh.enable = true;
-    };
-  };
-  toTemplateName = caseName: "test-${caseName}";
+  # see its README for why configs are provided by a separate flake
+  target = inputs.disko-install-menu-target;
 in
 {
   _class = "flake";
 
   perSystem =
     { pkgs, system, ... }@systemArg:
+    let
+      testCases = target.nixosTemplates.${system};
+    in
     {
-
       checks = flip mapAttrs' testCases (
         caseName: _:
         let
           name = "offlineBuilds-${caseName}";
-          configName = "${toTemplateName caseName}_${system}";
+          configName = "${caseName}_${system}";
         in
         nameValuePair name (
           pkgs.testers.nixosTest {
@@ -53,7 +38,7 @@ in
                   enable = true;
                   offlineCapable = true;
                   listedFlakes."default flake" = {
-                    offlineReference = self;
+                    offlineReference = target;
                     isDefaultFlake = true;
                     defaultHost = configName;
                     offlineHosts.${configName} = true;
@@ -88,19 +73,5 @@ in
           }
         )
       );
-
-      nixosTemplates = flip mapAttrs' testCases (
-        name: module:
-        nameValuePair (toTemplateName name) (nixosSystem {
-          modules = [
-            self.nixosModules.default # disko & installer
-            self.nixosModules.support
-            self.nixosModules.test-configDefaults # minimal for successful build
-            module
-          ];
-          inherit system;
-        })
-      );
-
     };
 }

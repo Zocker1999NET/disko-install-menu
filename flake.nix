@@ -14,6 +14,15 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # separate part of this flake, see its README for reasoning
+    disko-install-menu-target = {
+      url = "github:Zocker1999NET/disko-install-menu-target";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        disko.follows = "disko";
+        flake-parts.follows = "flake-parts";
+      };
+    };
   };
 
   outputs =
@@ -25,8 +34,10 @@
       in
       {
         imports = [
-          ./support/default.nix
+          ./passthroughs.nix
           ./tests/default.nix
+          # defines the `nixosTemplates` option
+          inputs.disko-install-menu-target.modules.flake.perSystemConfig
         ];
 
         systems = [
@@ -35,22 +46,26 @@
 
         flake = {
           nixosModules = rec {
+
             # with package already provided (allowing easier use)
             default.imports = [
               disko-install-menu
               package
             ];
+
             # raw module exported (assuming package being available in system’s pkgs)
-            disko-install-menu = {
-              imports = [ ./module ];
-            };
+            disko-install-menu.imports = singleton ./module;
+
             # package as overlay & especially built for the given NixOS version
             package.nixpkgs.overlays = singleton (
               pkgs: _: {
                 inherit (inputs.disko.packages.${pkgs.system}) disko;
-                disko-install-menu = pkgs.callPackage ./package.nix { };
+                disko-install-menu = pkgs.callPackage ./package.nix {
+                  hostPreviewNix = "${inputs.disko-install-menu-target}/support/host-preview.nix";
+                };
               }
             );
+
           };
         };
 
@@ -69,7 +84,9 @@
 
             packages = rec {
               default = disko-install-menu;
-              disko-install-menu = pkgs.callPackage ./package.nix { };
+              disko-install-menu = pkgs.callPackage ./package.nix {
+                hostPreviewNix = "${inputs.disko-install-menu-target}/support/host-preview.nix";
+              };
             };
 
           };

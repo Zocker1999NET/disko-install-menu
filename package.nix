@@ -13,6 +13,7 @@
   python3Minimal,
   smartmontools,
   util-linux,
+  hostPreviewNix,
 }:
 let
   inherit (lib.strings) makeBinPath;
@@ -41,7 +42,7 @@ replaceVarsWith {
       smartmontools # for smartctl
       util-linux # for lsblk, fdisk
     ];
-    hostPreviewNix = "${./support/host-preview.nix}";
+    inherit hostPreviewNix;
   };
 
   nativeBuildInputs = [ installShellFiles ];
