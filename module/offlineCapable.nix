@@ -11,6 +11,7 @@ let
     any
     attrValues
     concatLists
+    concatMap
     concatStringsSep
     getFlake
     isAttrs
@@ -86,21 +87,12 @@ let
           default = config.reference;
           example = literalExample "inputs.disko-install-menu";
         };
+
         # offlineHosts defined in ./menuConfig.nix
+
       };
     }
   );
-
-  flakeDependencies =
-    flake:
-    let
-      deps = (attrValues flake.inputs or { });
-    in
-    # string context from flake important for dependency resolution (i.e. do not use unsafeDiscardStringContext)
-    # for more about string context, see:
-    # - https://github.com/NixOS/nix/issues/6647
-    # - https://nix.dev/manual/nix/2.32/language/string-context
-    [ "${flake}" ] ++ flatten (map flakeDependencies deps);
 
   loadFlake =
     { reference, offlineReference, ... }:
@@ -110,6 +102,100 @@ let
       offlineReference
     else
       getFlake (if offlineReference == true then reference else offlineReference);
+
+  # recursively walk all inputs of flake and return a list of `{ path, storePath }`
+  flakeInputs =
+    flake:
+    let
+      walk =
+        path: value:
+        let
+          own = [
+            {
+              inherit path;
+              # string context from flake important for dependency resolution (i.e. do not use unsafeDiscardStringContext)
+              # for more about string context, see:
+              # - https://github.com/NixOS/nix/issues/6647
+              # - https://nix.dev/manual/nix/2.32/language/string-context
+              storePath = "${value}";
+            }
+          ];
+          sub = concatLists (mapAttrsToList (name: walk "${path}/${name}") (value.inputs or { }));
+        in
+        own ++ sub;
+    in
+    concatLists (mapAttrsToList walk (flake.inputs or { }));
+
+  # the hacky way of how to effectively override all inputs of a flake without using `--override-input` flags
+  # which is unsupported by some NixOS tooling like `nixos-install` & so `disko-install`:
+  # - copy the flake's source into the derivation output
+  # - drop its original flake.lock
+  # - re-lock all inputs against hardcoded store paths made available offline
+  #
+  # advantages of this approach:
+  # -> resulting derivation is a self-contained flake with all inputs available offline,
+  #    and so can definitely be evaluated offline & without any `--override-input` flags
+  # -> makes disko-install-menu module support using using a flake with followed (=overriden) inputs
+  #    - otherwise its flake.lock would require the original flake's input paths
+  #    - making overriding its inputs with follows impossible,
+  #    - and without parsing flake.lock + builtins.getFlake, we cannot provide the original inputs as extraDependencies,
+  #    - thus breaking offline evaluation of the flake
+  buildOfflineFlake =
+    flake:
+    let
+      inputs = flakeInputs flake;
+      overrideArgs = concatStringsSep " " (
+        concatMap ({ path, storePath, ... }: [
+          "--override-input"
+          path
+          "${storePath}"
+        ]) inputs
+      );
+    in
+    pkgs.runCommand "offline-flake"
+      {
+        nativeBuildInputs = with pkgs; [
+          nix
+        ];
+      }
+      # workarounds s.t. `nix flake lock` inside a derivation works without recursive-nix experimental feature
+      ''
+        # nix needs its state dirs to be writable, i.e. redirect them to temporary locations
+        # (see https://github.com/NixOS/nix/issues/10385)
+        export NIX_STATE_DIR=$(mktemp -d)
+        export NIX_LOCALSTATE_DIR=$(mktemp -d)
+        export NIX_LOG_DIR=$(mktemp -d)
+
+        # when using path:/nix/store/… flakes, nix wants to persist fetcher metadata in its cache dir
+        export NIX_CACHE_HOME=$(mktemp -d)
+        export XDG_CACHE_HOME=$(mktemp -d)
+
+        # use a chroot local store for evaluation so nix does not conflict with readonly /nix/store
+        nix_tmp_store=$(mktemp -d)
+
+        nix-flake-lock() {
+          nix \
+            --extra-experimental-features 'nix-command flakes' \
+            --offline \
+            flake lock \
+            --eval-store "local?root=$nix_tmp_store" \
+            "$@"
+        }
+
+        # copy original flake source & make writable again
+        cp --recursive ${flake} $out
+        chmod --recursive u+w $out
+        cd $out
+
+        # fully re-lock & also make locking fail when not all inputs are overridden
+        rm --force --verbose ./flake.lock
+
+        # lock against hardcoded store paths -> are stored in flake.lock -> become "runtime dependencies" of the flake
+        nix-flake-lock ${overrideArgs}
+
+        # re-lock again to resolve any follows now (not required for success, just optimization s.t. this happens not on every evaluation of the flake)
+        nix-flake-lock
+      '';
 
   listHostDeps =
     host:
@@ -151,7 +237,7 @@ let
         name: _: offlineHosts.${name} or optimism
       );
       deps = flatten [
-        (flakeDependencies flake)
+        (singleton "${buildOfflineFlake flake}")
         (map listHostDeps (attrValues selectedHosts))
       ];
     in
@@ -269,7 +355,7 @@ in
             value = mkForce {
               title = "${title} (offline)";
               # loadFlake cannot return null cause we filter for offlineCapable flakes only
-              reference = "${loadFlake flakeEntry}";
+              reference = "${buildOfflineFlake (loadFlake flakeEntry)}";
               inherit offlineHosts;
               offlineOnly = !onlineCapable;
             };
