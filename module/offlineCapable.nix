@@ -10,6 +10,8 @@ let
   inherit (builtins)
     any
     attrValues
+    concatLists
+    concatStringsSep
     getFlake
     isAttrs
     warn
@@ -18,6 +20,7 @@ let
   inherit (lib.attrsets)
     filterAttrs
     mapAttrs'
+    mapAttrsToList
     ;
   inherit (lib.lists) flatten singleton;
   inherit (lib.modules) mkForce mkIf;
@@ -186,6 +189,22 @@ in
 
   config = mkIf cfg.offlineCapable {
 
+    assertions = concatLists [
+      (flip mapAttrsToList listedFlakes (
+        name:
+        { reference, offlineReference, ... }:
+        {
+          assertion = reference != offlineReference;
+          message = concatStringsSep " " [
+            "programs.disko-install-menu.listedFlakes.${name}:"
+            "declaring offlineCapable flake entry with .reference == .offlineReference is not supported,"
+            "as it produces one non-working & one working entry in the menu,"
+            "use .offlineReference = true instead"
+          ];
+        }
+      ))
+    ];
+
     system.extraDependencies = flatten [
 
       # == config independent
@@ -228,7 +247,7 @@ in
           n: v:
           let
             offlineRef = "${v.offlineReference}";
-            onlyLocked = v.offlineReference == true || v.reference == offlineRef;
+            onlyLocked = v.offlineReference == true;
           in
           {
             # overwrite original entry if only offline / locked available
