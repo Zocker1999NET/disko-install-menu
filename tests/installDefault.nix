@@ -43,13 +43,11 @@ in
               enable = true;
               autoStart = true;
               offlineCapable = true;
-              options = {
-                defaultFlake = "${self}";
-                defaultHost = "test-${system}";
-              };
-              listedFlakes.defaultFlake = {
-                offlineHosts."test-${system}" = true;
+              listedFlakes.default = {
                 offlineReference = self;
+                isDefaultFlake = true;
+                defaultHost = "test-${system}";
+                offlineHosts."test-${system}" = true;
               };
             };
           }

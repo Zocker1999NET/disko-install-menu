@@ -34,8 +34,9 @@ in
             programs.disko-install-menu = {
               enable = true;
               autoStart = true;
-              options = {
-                defaultFlake = "${./..}";
+              listedFlakes.default = {
+                reference = "${./..}";
+                isDefaultFlake = true;
                 defaultHost = "test-descriptionFallback";
               };
             };

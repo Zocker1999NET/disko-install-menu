@@ -52,13 +52,11 @@ in
                 programs.disko-install-menu = {
                   enable = true;
                   offlineCapable = true;
-                  options = {
-                    defaultFlake = "${self}";
-                    defaultHost = configName;
-                  };
-                  listedFlakes.defaultFlake = {
-                    offlineHosts.${configName} = true;
+                  listedFlakes."default flake" = {
                     offlineReference = self;
+                    isDefaultFlake = true;
+                    defaultHost = configName;
+                    offlineHosts.${configName} = true;
                   };
                 };
                 virtualisation = {
