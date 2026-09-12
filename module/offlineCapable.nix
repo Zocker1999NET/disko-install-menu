@@ -355,17 +355,25 @@ in
           n:
           {
             title,
+            isDefaultFlake,
+            defaultHost,
             offlineHosts,
             onlineCapable,
             ...
           }@flakeEntry:
           {
+            # suppress default if both offline & online available
+            ${if onlineCapable then n else null} = {
+              isDefaultFlake = mkForce false;
+            };
             # overwrite original entry if only offline / locked available
             ${if onlineCapable then "${n}_offline" else n} = mkForce {
               title = "${title} (offline)";
               # loadFlake cannot return null cause we filter for offlineCapable flakes only
               reference = "${buildOfflineFlake (loadFlake flakeEntry)}";
               inherit
+                isDefaultFlake
+                defaultHost
                 offlineHosts
                 ;
               offlineOnly = true;

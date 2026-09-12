@@ -10,7 +10,10 @@ let
   inherit (builtins)
     attrValues
     concatLists
+    concatStringsSep
     filter
+    head
+    length
     mapAttrs
     ;
   inherit (lib) types;
@@ -18,6 +21,7 @@ let
   inherit (lib.lists) singleton;
   inherit (lib.modules) mkIf;
   inherit (lib.options) mkEnableOption mkOption;
+  inherit (lib.strings) escapeNixIdentifier;
   inherit (lib.trivial) flip pipe;
 
   mkDisableOption = text: mkEnableOption text // { default = true; };
@@ -53,6 +57,41 @@ let
           #   and it must not allow null as part of the passthrough options
           type = if options ? offlineReference then with types; nullOr str else types.str;
           example = "github:Zocker1999NET/disko-install-menu";
+        };
+        isDefaultFlake = mkOption {
+          description = ''
+            Whether this flake entry is the default flake entry.
+
+            If enabled,
+            {option}`programs.disko-install-menu.listedFlakes.${name}.defaultHost`
+            is expected to be configured as well.
+          '';
+          type = types.bool;
+          default = false;
+          example = true;
+        };
+        defaultHost = mkOption {
+          description = ''
+            If set, the default host configuration to be used from this flake entry.
+
+            If declared, it serves as the default for speeding up selection of a configuration.
+            Depending on {option}`programs.disko-install-menu.options.allowFlakeInput`
+            or {option}`programs.disko-install-menu.options.listedFlakes`,
+            users may still choose to install a different configuration at all.
+
+            In general, for a NixOS configuration to be installable by this setup,
+            it must also define a disko configuration
+            (optionally excluding the names of the target disks,
+            as those are provided by the user).
+
+            if this is the default flake entry according to
+            {option}`programs.disko-install-menu.listedFlakes.${name}.isDefaultFlake`,
+            this host is used as the global default host configuration for the menu.
+            Otherwise, this option is ignored for now.
+          '';
+          type = with types; nullOr str;
+          default = null;
+          example = "empty";
         };
         # defined here because required for clean export
         offlineHosts = mkOption {
@@ -93,40 +132,6 @@ let
 
       debugMode = mkEnableOption "debug (i.e. dry-run) mode, where no changes will be applied by the install menu";
 
-      defaultFlake = mkOption {
-        description = ''
-          The flake where the default host config as specified in
-          {option}`programs.disko-install-menu.options.defaultHost` lives.
-
-          The flake listed this in option is also added to
-          {option}`programs.disko-install-menu.listedFlakes`.
-          Read that option’s documentation for further explaination.
-        '';
-        type = types.str;
-        example = "github:Zocker1999NET/server";
-      };
-
-      defaultHost = mkOption {
-        description = ''
-          The name of the default host configuration provided in the menu.
-
-          If declared, it only serves as the default for speeding up selection of a configuration.
-          Depending on {option}`programs.disko-install-menu.options.allowFlakeInput`
-          or {option}`programs.disko-install-menu.options.listedFlakes`,
-          users may still choose to install a different configuration at all.
-
-          This configuration is expected to be exported by the default flake as defined in
-          {option}`programs.disko-install-menu.options.defaultFlake`.
-
-          In general, for a NixOS configuration to be installable by this setup,
-          it must also define a disko configuration
-          (optionally excluding the names of the target disks,
-          as those are provided by the user).
-        '';
-        type = types.str;
-        example = "empty";
-      };
-
       diskoInstallFlags = mkOption {
         description = "Command line arguments which are forwarded to disko-install.";
         type = with types; listOf str;
@@ -151,6 +156,8 @@ let
               name
               title
               reference
+              isDefaultFlake
+              defaultHost
               offlineHosts
               ;
           }))
@@ -191,10 +198,33 @@ let
   # TODO replace with <server> flake's assertions passthrough module complex
   entryAssertions =
     prefix: entries:
+    let
+      defaultFlakesAll = filter (v: v.isDefaultFlake) entries;
+      defaultFlakeCount = length defaultFlakesAll;
+      defaultFlake = head defaultFlakesAll;
+    in
     [
       {
         assertion = entries != [ ];
         message = "${prefix}: must not be empty";
+      }
+      # TODO adapt setup.py to support having no default flake
+      {
+        assertion = defaultFlakeCount >= 1;
+        message = "${prefix}: must contain at least one default flake entry";
+      }
+      {
+        assertion = defaultFlakeCount <= 1;
+        message = ''
+          ${prefix}: must not contain more than one default flake entry:
+          ${concatStringsSep "\n" (map (f: "- .${escapeNixIdentifier f.name}") defaultFlakesAll)}
+        '';
+      }
+      {
+        assertion = defaultFlakeCount != 1 || defaultFlake.defaultHost != null;
+        message = ''
+          ${prefix}.${escapeNixIdentifier defaultFlake.name}: must declare a defaultHost if it is the default flake entry
+        '';
       }
     ];
 in
@@ -244,12 +274,6 @@ in
 
     programs.disko-install-menu = {
 
-      # default options
-      listedFlakes.defaultFlake = {
-        title = "default flake";
-        reference = cfg.options.defaultFlake;
-      };
-
       # options translation
       options = {
         listedFlakes = pipe cfg.listedFlakes [
@@ -259,6 +283,8 @@ in
               inherit (v)
                 title
                 reference
+                isDefaultFlake
+                defaultHost
                 ;
             }
           ))

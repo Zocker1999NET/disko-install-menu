@@ -72,6 +72,8 @@ class ListedFlake:
     "attr name in definition"
     reference: str
     title: str = ""
+    isDefaultFlake: bool = False
+    defaultHost: str | None = None
     offlineOnly: bool = False
     offlineHosts: dict[str, bool] = field(default_factory=dict, hash=False)
 
@@ -127,30 +129,26 @@ class ListedFlake:
 class Settings:
     allowFlakeInput: bool = True
     debugMode: bool = True
-    defaultFlake: str = "github:Zocker1999NET/server"
-    defaultHost: str = "empty"
     diskoInstallFlags: list[str] = field(default_factory=list)
     listedFlakes: list[ListedFlake] = field(default_factory=list)
     writeEfiBootEntries: bool | None = None  # None = depending on selected config
 
     @cached_property
     def defaultHostConfig(self) -> ConfigSource:
-        online_flake, offline_flake = self.__search_default_flakes()
-        # replace online flake with offline flake for default host config if offline is given
-        default_flake = (
-            offline_flake.reference
-            if offline_flake is not None
-            and (online_flake is None or online_flake.reference == self.defaultFlake)
-            else self.defaultFlake
-        )
-        return ConfigSource(ListedFlake(default_flake), self.defaultHost)
+        flake = self.default_flake
+        assert flake.defaultHost is not None, "default flake must declare a defaultHost"
+        return ConfigSource(flake, flake.defaultHost)
 
-    def __search_default_flakes(self) -> tuple[ListedFlake | None, ListedFlake | None]:
-        # TODO replace hacky trick with cleaner config syntax
-        DEFAULT_FLAKE_NAME = "default flake"
-        DEFAULT_FLAKE_OFFLINE = f"{DEFAULT_FLAKE_NAME} (offline)"
-        flakes = {f.title: f for f in self.listedFlakes}
-        return flakes.get(DEFAULT_FLAKE_NAME), flakes.get(DEFAULT_FLAKE_OFFLINE)
+    @cached_property
+    def default_flake(self) -> ListedFlake:
+        defaultFlakes = list(filter(lambda f: f.isDefaultFlake, self.listedFlakes))
+        if len(defaultFlakes) > 1:
+            raise ValueError(
+                f"multiple default flakes found: {[f.title for f in defaultFlakes]!r}"
+            )
+        elif len(defaultFlakes) == 0:
+            raise ValueError("no default flake found")
+        return defaultFlakes[0]
 
 
 CONFIG = Settings()
@@ -207,8 +205,6 @@ def read_config():
     CONFIG = Settings(
         allowFlakeInput=data.get("allowFlakeInput", True),
         debugMode=data.get("debugMode", False),
-        defaultFlake=data["defaultFlake"],
-        defaultHost=data["defaultHost"],
         diskoInstallFlags=data.get("diskoInstallFlags", []),
         listedFlakes=[ListedFlake.from_dict(d) for d in data.get("listedFlakes", [])],
         writeEfiBootEntries=data.get("writeEfiBootEntries", None),
@@ -357,7 +353,7 @@ def flake_input() -> ListedFlake | None:
     print("for example:")
     examples = (
         "github:NixOS/nixpkgs  (albeit that contains no configs)",
-        f"{CONFIG.defaultFlake}  (configured default)",
+        f"{CONFIG.default_flake.reference}  (configured default)",
     )
     print("\n".join(f"- {line}" for line in examples))
     print("(submit empty input or CTRL+D to return back to menu)")
