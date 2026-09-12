@@ -59,7 +59,7 @@
             # package as overlay & especially built for the given NixOS version
             package.nixpkgs.overlays = singleton (
               pkgs: _: {
-                inherit (inputs.disko.packages.${pkgs.system}) disko;
+                inherit (inputs.disko.packages.${pkgs.stdenv.hostPlatform.system}) disko;
                 disko-install-menu = pkgs.callPackage ./package.nix {
                   hostPreviewNix = "${inputs.disko-install-menu-target}/support/host-preview.nix";
                 };
