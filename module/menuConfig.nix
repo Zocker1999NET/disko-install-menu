@@ -218,6 +218,13 @@ in
 
   config = mkIf cfg.enable {
 
+    assertions = [
+      {
+        assertion = cfg.listedFlakes != { };
+        message = "programs.disko-install-menu.listedFlakes must not be empty";
+      }
+    ];
+
     # moved to /etc so config applies when disko-install-menu is just called by itself
     environment.etc."disko-install-menu/config".source =
       cfgFormat.generate "disko-install-menu-config" cfg.options;
