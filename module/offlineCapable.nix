@@ -314,9 +314,9 @@ in
       as due to its implementation,
       this may not *just work* for all configurations,
       feel free to report a bug in such cases.
-      Nontheless, the installation should still succeed
-      with access to the Internet / a suitable nix cache,
-      and less files should be downloaded overall
+      However, the installation should always succeed
+      with access to the Internet / a suitable nix cache
+      and still less files be downloaded overall
     ''; # mkEnableOption -> dot at end is added
 
     listedFlakes = mkOption {
