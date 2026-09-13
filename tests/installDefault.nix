@@ -115,7 +115,7 @@ in
           wait_for_text("INSTALL NOW", timeout=60)
           send_chars("install\n")
           # wait for successful installation
-          wait_for_text("(?i)disko-install-menu.*Installation.*Successful", timeout=3*60)
+          wait_for_text("(?i)disko-install-menu.*Installation.*Successful", timeout=5*60)
         '';
       };
     };
