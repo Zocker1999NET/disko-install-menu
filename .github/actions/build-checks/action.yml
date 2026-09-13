@@ -23,8 +23,8 @@ runs:
         system="${{ inputs.system }}"
         nix eval --json ".#checks.${system}" --apply builtins.attrNames \
           | jq -r '.[]' \
-          | while read -r check; do
-              nix build ".#checks.${system}.${check}" --print-out-paths
-            done \
+          | sed "s|^|.#checks.${system}.|" \
+          | xargs -L 10 nix build --print-out-paths \
           | tr '\n' ' ' \
-          | xargs echo "paths=" >> "$GITHUB_OUTPUT"
+          | sed 's/^/paths=/' \
+          >> "$GITHUB_OUTPUT"
