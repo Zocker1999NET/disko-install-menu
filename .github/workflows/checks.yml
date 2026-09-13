@@ -1,0 +1,47 @@
+name: "Build & push checks"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CACHIX_CHECKS_CACHE: zocker-nix-projects-checks
+
+jobs:
+  checks:
+    name: "checks.${{ matrix.system }}.*"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        system: [x86_64-linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # configure the cache for pulling (substitution) only
+      - uses: cachix/cachix-action@v17
+        with:
+          name: ${{ env.CACHIX_CHECKS_CACHE }}
+          skipPush: true
+
+      # build every check and capture the resulting store paths.
+      - uses: ./.github/actions/build-checks
+        id: build
+        with:
+          system: ${{ matrix.system }}
+
+      - name: Push to cache
+        # push needs secrets & could be security-sensitive if done for all outside PRs
+        if: github.event_name == 'push' && github.repository_owner == 'zocker-nix-projects'
+        env:
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_CHECKS_AUTH_TOKEN }}
+          CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_CHECKS_SIGNING_KEY }}
+        run: |
+          cachix push "$CACHIX_CHECKS_CACHE" ${{ steps.build.outputs.paths }}

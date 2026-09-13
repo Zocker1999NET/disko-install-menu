@@ -1,0 +1,30 @@
+name: "Build all checks"
+description: "Build every check for a given system (enumerated via nix eval) and output the resulting store paths."
+
+inputs:
+  system:
+    description: "Nix system, e.g. x86_64-linux"
+    required: true
+
+outputs:
+  paths:
+    description: "Space-separated store paths of the built checks"
+    value: ${{ steps.build.outputs.paths }}
+
+runs:
+  using: "composite"
+  steps:
+    # Build every check for this system.
+    - id: build
+      name: Build checks
+      shell: bash
+      run: |
+        set -euo pipefail
+        system="${{ inputs.system }}"
+        nix eval --json ".#checks.${system}" --apply builtins.attrNames \
+          | jq -r '.[]' \
+          | while read -r check; do
+              nix build ".#checks.${system}.${check}" --print-out-paths
+            done \
+          | tr '\n' ' ' \
+          | xargs echo "paths=" >> "$GITHUB_OUTPUT"
