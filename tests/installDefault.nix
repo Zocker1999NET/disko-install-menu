@@ -76,7 +76,7 @@ in
             node.send_chars(*args)
             time.sleep(1)
           def wait_for_text(regexp, timeout):
-            return node.wait_until_tty_matches(1, regexp, timeout=timeout)
+            return node.wait_until_tty_matches("1", regexp, timeout=timeout)
 
           node.start()
           node.wait_for_unit("default.target")

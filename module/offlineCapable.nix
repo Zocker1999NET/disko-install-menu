@@ -243,7 +243,7 @@ let
         # (system.configurationRevision -> nixos-version -> environment.systemPackages
         #  -> system.path -> ? -> systemd.packages
         #  -> <nixpkgs/nixos/lib/systemd-lib.nix>:generateUnits)
-        xorg.lndir
+        lndir
 
       ])
 
