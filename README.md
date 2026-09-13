@@ -109,7 +109,7 @@ For example, this could look like:
   inputs = {
     # … (e.g. nixpkgs)
     disko-install-menu = {
-      url = "github:Zocker1999NET/disko-install-menu";
+      url = "github:zocker-nix-projects/disko-install-menu";
       # this is recommended to do (I will NOT regularly update the flake.lock)
       # (& should hopefully not introduce any errors)
       inputs.nixpkgs.follows = "nixpkgs";

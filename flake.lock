@@ -33,15 +33,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1789296282,
-        "narHash": "sha256-WxZ7eo8Pt276EiGEz49WW5k2UmalrWO9YjKYqO+gfjU=",
-        "owner": "Zocker1999NET",
+        "lastModified": 1789301291,
+        "narHash": "sha256-UJZplv5k98gAN4YLT6PiXvG8zEABbwRRM8bz0Fug8gc=",
+        "owner": "zocker-nix-projects",
         "repo": "disko-install-menu-target",
-        "rev": "80bd56be1436f94ea624eeb92a40fe44bdf66ab1",
+        "rev": "75d0c57c6489d62475836daf49cac8016457965c",
         "type": "github"
       },
       "original": {
-        "owner": "Zocker1999NET",
+        "owner": "zocker-nix-projects",
         "repo": "disko-install-menu-target",
         "type": "github"
       }

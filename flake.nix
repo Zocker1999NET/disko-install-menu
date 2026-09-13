@@ -16,7 +16,7 @@
     };
     # separate part of this flake, see its README for reasoning
     disko-install-menu-target = {
-      url = "github:Zocker1999NET/disko-install-menu-target";
+      url = "github:zocker-nix-projects/disko-install-menu-target";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         disko.follows = "disko";

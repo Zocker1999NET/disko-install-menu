@@ -56,7 +56,7 @@ let
           #   because ./offlineCapable.nix cannot override its type to accept null
           #   and it must not allow null as part of the passthrough options
           type = if options ? offlineReference then with types; nullOr str else types.str;
-          example = "github:Zocker1999NET/disko-install-menu";
+          example = "github:zocker-nix-projects/disko-install-menu";
         };
         isDefaultFlake = mkOption {
           description = ''
