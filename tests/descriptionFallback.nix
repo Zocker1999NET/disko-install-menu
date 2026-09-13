@@ -8,6 +8,7 @@
 let
   inherit (builtins) attrValues;
   inherit (lib) nixosSystem;
+  inherit (lib.modules) mkForce;
 in
 {
 
@@ -44,6 +45,10 @@ in
           {
             system.extraDependencies = (map (i: "${i}") (attrValues inputs)); # flake inputs
           }
+          # let the service fail instead of restarting on failure to be able to observe failure early
+          {
+            systemd.services.disko-install-menu.serviceConfig.Restart = mkForce "no";
+          }
           # for test environment only
           {
             virtualisation = {
@@ -64,9 +69,19 @@ in
           def wait_for_text(regexp, timeout):
             return node.wait_until_tty_matches("1", regexp, timeout=timeout)
 
+          @polling_condition
+          def menu_running():
+            "check that the disko-install-menu service is still running"
+            try:
+              node.require_unit_state("disko-install-menu.service")
+            except AssertionError:
+              # log the current tty content to aid debugging (error message on screen instead of journal output)
+              node.dump_tty_contents("1")
+              raise
+
           node.start()
           node.wait_for_unit("default.target")
-          node.wait_for_unit("disko-install-menu.service")
+          menu_running.wait()
           time.sleep(1)
           # ensure offline
           node.block()
@@ -75,11 +90,12 @@ in
           node.fail("ping -c 2 9.9.9.9")
           node.fail("ping -c 2 2620:fe::fe")
           # main screen
-          wait_for_text("install .*NixOS", timeout=2*60)
-          send_chars("instnixos\n")  # test fuzzy selection
-          # select flake / default
-          wait_for_text("default target", timeout=8*60)
-          # TODO verify description was rendered successful
+          with menu_running:
+            wait_for_text("install .*NixOS", timeout=2*60)
+            send_chars("instnixos\n")  # test fuzzy selection
+            # select flake / default
+            wait_for_text("default target", timeout=8*60)
+            # TODO verify description was rendered successful
         '';
       };
     };
