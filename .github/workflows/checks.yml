@@ -32,8 +32,10 @@ jobs:
           skipPush: true
 
       # build every check and capture the resulting store paths.
+      # also push in case of error as some checks may have succeeded and their store paths should be cached.
       - uses: ./.github/actions/build-checks
         id: build
+        continue-on-error: true
         with:
           system: ${{ matrix.system }}
 
