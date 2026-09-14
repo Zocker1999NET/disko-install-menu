@@ -1,5 +1,5 @@
 name: "Build all checks"
-description: "Build every check for a given system (enumerated via nix eval) and output the resulting store paths."
+description: "Build every check for a given system (enumerated via nix eval) and output the store paths of the ones that succeeded."
 
 inputs:
   system:
@@ -8,23 +8,37 @@ inputs:
 
 outputs:
   paths:
-    description: "Space-separated store paths of the built checks"
+    description: "Space-separated store paths of the successfully built checks"
     value: ${{ steps.build.outputs.paths }}
 
 runs:
   using: "composite"
   steps:
-    # Build every check for this system.
     - id: build
       name: Build checks
       shell: bash
       run: |
         set -euo pipefail
         system="${{ inputs.system }}"
-        nix eval --json ".#checks.${system}" --apply builtins.attrNames \
-          | jq -r '.[]' \
-          | sed "s|^|.#checks.${system}.|" \
-          | xargs -L 10 nix build --print-out-paths \
-          | tr '\n' ' ' \
-          | sed 's/^/paths=/' \
-          >> "$GITHUB_OUTPUT"
+
+        # Enumerate all check names for this system.
+        checks="$(nix eval --json ".#checks.${system}" --apply builtins.attrNames | jq -r '.[]')"
+
+        paths=()
+        failed=0
+        while IFS= read -r check; do
+          [[ -z "$check" ]] && continue
+          echo "Building .#checks.${system}.${check}"
+          if out="$(nix build --print-out-paths ".#checks.${system}.${check}")"; then
+            paths+=("$out")
+          else
+            echo "::error::check ${check} failed"
+            failed=1
+          fi
+        done <<< "$checks"
+
+        # Emit the store paths of the checks that succeeded.
+        echo "paths=${paths[*]}" >> "$GITHUB_OUTPUT"
+
+        # Propagate the error so the step fails, but the paths output is set.
+        exit "$failed"
