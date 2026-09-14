@@ -1,0 +1,30 @@
+name: "Push to Cachix cache"
+description: "Push the given store paths to a Cachix cache, signed with the project's own signing key."
+
+inputs:
+  paths:
+    description: "Space-separated store paths to push"
+    required: true
+  cache:
+    description: "Cachix cache name"
+    required: true
+  authToken:
+    description: "Cachix auth token (secret)"
+    required: true
+  signingKey:
+    description: "Cachix signing key (secret), in 'name-1:base64' format or just the base64 part"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Push to cache
+      shell: bash
+      env:
+        CACHIX_AUTH_TOKEN: ${{ inputs.authToken }}
+        CACHIX_SIGNING_KEY: ${{ inputs.signingKey }}
+      run: |
+        set -euo pipefail
+        # cachix expects the raw base64 secret key, so strip the "name-1:" prefix if present
+        export CACHIX_SIGNING_KEY="${CACHIX_SIGNING_KEY#*:}"
+        cachix push "${{ inputs.cache }}" ${{ inputs.paths }}

@@ -43,10 +43,9 @@ jobs:
           github.repository_owner == 'zocker-nix-projects' &&
           (github.event_name != 'pull_request' ||
            github.event.pull_request.head.repo.full_name == github.repository)
-        env:
-          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_CHECKS_AUTH_TOKEN }}
-          CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_CHECKS_SIGNING_KEY }}
-        run: |
-          # cachix expects the raw base64 secret key, so strip the "name-1:" prefix
-          export CACHIX_SIGNING_KEY="${CACHIX_SIGNING_KEY#*:}"
-          cachix push "$CACHIX_CHECKS_CACHE" ${{ steps.build.outputs.paths }}
+        uses: ./.github/actions/push-to-cache
+        with:
+          paths: ${{ steps.build.outputs.paths }}
+          cache: ${{ env.CACHIX_CHECKS_CACHE }}
+          authToken: ${{ secrets.CACHIX_CHECKS_AUTH_TOKEN }}
+          signingKey: ${{ secrets.CACHIX_CHECKS_SIGNING_KEY }}
